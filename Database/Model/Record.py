@@ -17,7 +17,7 @@ class Record(Base):
     woc_id = Column(String(255), unique=True, nullable=False)
     
     # Navy blue columns
-    doi = Column(String(255), unique=True, nullable=True)
+    doi = Column(String(255), nullable=True)
     url = Column(String(255), nullable=True)
     citation = Column(Text, nullable=True)
     

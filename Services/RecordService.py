@@ -7,6 +7,9 @@ from Database.Model.Record import Record
 from Database.Schema.RecordSchema import RecordSchema
 from Services.Support import *
 
+import pandas as pd
+from werkzeug.utils import secure_filename
+
 # Create Service blueprint
 RecordService = Blueprint('RecordService', __name__)
 
@@ -60,3 +63,137 @@ def create_record():
                 {"success": True}, 201)
         except ValidationError as e:
             return build_response({"error": e.errors()}, 400)
+
+
+
+
+
+# Endpoint 1: Upload Excel file
+@RecordService.route("/records/import_excel", methods=['POST'])
+def import_records_excel():
+    if 'file' not in request.files:
+        return build_response({"error": "No file provided"}, 400)
+    
+    file = request.files['file']
+    filename = secure_filename(file.filename)
+    
+    try:
+        df = pd.read_excel(file)
+    except Exception as e:
+        return build_response({"error": f"Failed to read Excel file: {str(e)}"}, 400)
+    
+    success_count = 0
+    errors = []
+    
+    # Iterate over each row and map based on column order
+    for idx, row in df.iterrows():
+        row = {k: clean_value(v) for k, v in row.items()}
+        
+        # Convert confidentialiaty_level to string
+        if 'confidentialiaty_level' in row and row['confidentialiaty_level'] is not None:
+            row['confidentialiaty_level'] = str(int(row['confidentialiaty_level']))
+        try:
+            record_data = {
+                "woc_id": row["WoCid"],
+                "doi": row.get("DOI"),
+                "url": row.get("URL"),
+                "citation": row.get("Citation"),
+                "coord_x": float(str(row["X"]).replace(",", ".")),
+                "coord_y": float(str(row["Y"]).replace(",", ".")),
+                "accuracy": row.get("Accuracy"),
+                "crayfish_scientific_name": row.get("Crayfish_scientific_name"),
+                "status": row.get("Status"),
+                "year_of_record": int(row["Year_of_record"]),
+                "ncbi_coi_accession_code": row.get("NCBI_COI_accession_code"),
+                "ncbi_16s_accession_code": row.get("NCBI_16S_accession_code"),
+                "ncbi_sra_accession_code": row.get("NCBI_SRA_accession_code"),
+                "claim_extinction": row.get("Claim_extinction"),
+                "pathogen_symbiont_scientific_name": row.get("Pathogen_symbiont_scientific_name"),
+                "pathogen_ncbi_coi_accession_code": row.get("NCBI_COI_accession_code"),
+                "pathogen_ncbi_16s_accession_code": row.get("NCBI_16S_accession_code"),
+                "pathogen_genotype_group": row.get("Genotype_group"),
+                "pathogen_haplotype": row.get("Haplotype"),
+                "pathogen_year_of_record": row.get("Year_of_record"),
+                "comments": row.get("Comments"),
+                "confidentialiaty_level": str(int(row.get("Confidentiality_level", 0))),
+                "contributor": row.get("Contributor")
+            }
+            
+            validated = RecordSchema(**record_data)
+
+            new_record = Record(
+                woc_id=validated.woc_id,
+                doi=validated.doi,
+                url=validated.url,
+                citation=validated.citation,
+                coord_x=validated.coord_x,
+                coord_y=validated.coord_y,
+                accuracy=validated.accuracy,
+                crayfish_scientific_name=validated.crayfish_scientific_name,
+                status=validated.status,
+                year_of_record=validated.year_of_record,
+                ncbi_coi_accession_code=validated.ncbi_coi_accession_code,
+                ncbi_16s_accession_code=validated.ncbi_16s_accession_code,
+                ncbi_sra_accession_code=validated.ncbi_sra_accession_code,
+                claim_extinction=validated.claim_extinction,
+                pathogen_symbiont_scientific_name=validated.pathogen_symbiont_scientific_name,
+                pathogen_ncbi_coi_accession_code=validated.pathogen_ncbi_coi_accession_code,
+                pathogen_ncbi_16s_accession_code=validated.pathogen_ncbi_16s_accession_code,
+                pathogen_genotype_group=validated.pathogen_genotype_group,
+                pathogen_haplotype=validated.pathogen_haplotype,
+                pathogen_year_of_record=validated.pathogen_year_of_record,
+                comments=validated.comments,
+                confidentialiaty_level=validated.confidentialiaty_level,
+                contributor=validated.contributor
+            )
+
+            db.session.add(new_record)
+            db.session.flush()
+            success_count += 1
+        except ValidationError as ve:
+            errors.append({"row": idx + 1, "errors": ve.errors()})
+            print(ve)
+        except Exception as e:
+            errors.append({"row": idx + 1, "errors": str(e)})
+            print(e)
+
+    db.session.commit()
+    return build_response({"success_count": success_count, "errors": errors}, 201)
+
+
+# Endpoint 2: Bulk JSON insert
+@RecordService.route("/records/bulk_json", methods=['POST'])
+def insert_records_json():
+    if not request.is_json:
+        return build_response({"error": "Request must contain JSON"}, 400)
+
+    data_list = request.get_json()
+    if not isinstance(data_list, list):
+        return build_response({"error": "Expected a JSON array"}, 400)
+
+    success_count = 0
+    errors = []
+
+    for idx, data in enumerate(data_list):
+        try:
+            validated = RecordSchema(**data)
+            new_record = Record(**validated.model_dump())
+            db.session.add(new_record)
+            db.session.flush()
+            success_count += 1
+        except ValidationError as ve:
+            errors.append({"index": idx, "errors": ve.errors()})
+        except Exception as e:
+            errors.append({"index": idx, "errors": str(e)})
+
+    db.session.commit()
+    return build_response({"success_count": success_count, "errors": errors}, 201)
+
+
+
+import math
+
+def clean_value(value):
+    if isinstance(value, float) and math.isnan(value):
+        return ""
+    return value

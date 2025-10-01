@@ -42,7 +42,7 @@ class RecordSchema(BaseModel):
     pathogen_ncbi_16s_accession_code: Optional[str] = Field(None, max_length=255)
     pathogen_genotype_group: Optional[str] = Field(None, max_length=255)
     pathogen_haplotype: Optional[str] = Field(None, max_length=255)
-    pathogen_year_of_record: Optional[str] = Field(None, max_length=255)
+    pathogen_year_of_record: Optional[int] = Field(None, ge=1700)
 
     comments: Optional[str] = Field(None)
     confidentialiaty_level: ConfidentialityLevel
