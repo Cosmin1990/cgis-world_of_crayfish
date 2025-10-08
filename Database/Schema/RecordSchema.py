@@ -53,6 +53,31 @@ class RecordSchema(BaseModel):
 
 
 
-class UserPaginatedDTO(PaginatedResponse):
-    items: List[RecordSchema]
-    pass
+class RecordOutDTO(BaseModel):
+    id: int
+    woc_id: str
+    doi: Optional[str]
+    url: Optional[str]
+    citation: Optional[str]
+    coord_x: float
+    coord_y: float
+    accuracy: RecordAccuracy
+    crayfish_scientific_name: str
+    status: str
+    year_of_record: int
+    ncbi_coi_accession_code: Optional[str]
+    ncbi_16s_accession_code: Optional[str]
+    ncbi_sra_accession_code: Optional[str]
+    claim_extinction: Optional[str]
+    pathogen_symbiont_scientific_name: Optional[str]
+    pathogen_ncbi_coi_accession_code: Optional[str]
+    pathogen_ncbi_16s_accession_code: Optional[str]
+    pathogen_genotype_group: Optional[str]
+    pathogen_haplotype: Optional[str]
+    pathogen_year_of_record: Optional[int]
+    comments: Optional[str]
+    confidentialiaty_level: ConfidentialityLevel
+    contributor: Optional[str]
+
+    class Config:
+        from_attributes = True

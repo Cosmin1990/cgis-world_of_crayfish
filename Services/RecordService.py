@@ -76,11 +76,27 @@ def get_distinct_crayfish_names():
             .all()
         )
         names_list = [name[0] for name in distinct_names if name[0] is not None]
-        return build_response({"distinct_crayfish_names": names_list}, 200)
+        return build_response(names_list, 200)
     except Exception as e:
         return build_response({"error": str(e)}, 500)
 
 
+from flask import Blueprint, jsonify, abort
+from Database.Model.Record import Record
+from Database.Schema.RecordSchema import RecordOutDTO
+
+
+@RecordService.route('/records/species/<string:species_name>', methods=['GET'])
+def get_record_by_species(species_name: str):
+    record = db.session.query(Record).filter(
+        Record.crayfish_scientific_name == species_name
+    ).first()
+
+    if not record:
+        abort(404, description=f"No record found for species: {species_name}")
+
+    return build_response(RecordOutDTO.model_validate(record).model_dump(), 200)
+# jsonify(RecordOutDTO.model_validate(record).model_dump())
 
 
 
