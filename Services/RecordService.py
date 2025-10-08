@@ -65,6 +65,22 @@ def create_record():
             return build_response({"error": e.errors()}, 400)
 
 
+# Endpoint: Get distinct crayfish scientific names
+@RecordService.route("/records/species_names", methods=['GET'])
+def get_distinct_crayfish_names():
+    try:
+        distinct_names = (
+            db.session.query(Record.crayfish_scientific_name)
+            .distinct()
+            .order_by(Record.crayfish_scientific_name)
+            .all()
+        )
+        names_list = [name[0] for name in distinct_names if name[0] is not None]
+        return build_response({"distinct_crayfish_names": names_list}, 200)
+    except Exception as e:
+        return build_response({"error": str(e)}, 500)
+
+
 
 
 
