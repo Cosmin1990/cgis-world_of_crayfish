@@ -12,8 +12,8 @@ function Sidebar() {
     const [selectedRecord, setselectedRecord] = useState<Record>();
 
     useEffect(() => {
-      fetch("http://localhost:5000/records/species_names") // example endpoint
-        .then((response) => response.json())
+      // fetch("http://localhost:5000/records/species_names") // example endpoint
+       fetch(`${process.env.REACT_APP_API_BASE_URL}/records/species_names`).then((response) => response.json())
         .then((data) => {
           setAllSpecies(data);
           if (data.length > 0) {
@@ -68,7 +68,7 @@ function Sidebar() {
                     value={selectedSpecies}
                     onChange={(e) => setSelectedSpecies(e.target.value)}
                 >
-                    {allSpecies.map(species => (
+                    {allSpecies!.map(species => (
                         <option key={species}>{species}</option>
                     ))}
                 </select>

@@ -1,4 +1,5 @@
 import sys
+import os
 from flask import Flask
 from Database.DBConnection import db
 from Services.UserService import UserService
@@ -9,8 +10,10 @@ from Services.RecordService import RecordService
 ServerApp = Flask(__name__)
 
 # Configure Application Database access
-# ServerApp.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://<db_user>:<db_pass>@<db_IP>:<db_port>/empower"
-ServerApp.config['SQLALCHEMY_DATABASE_URI'] =  "mysql+pymysql://root:pass@localhost:3308/woc"
+
+# ServerApp.config['SQLALCHEMY_DATABASE_URI'] =  "mysql+pymysql://root:pass@localhost:3308/woc"
+
+ServerApp.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URI")
 ServerApp.config['SQLALCHEMY_ECHO'] = True
 ServerApp.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -32,4 +35,6 @@ if __name__ == "__main__":
     else:
         db.init_app(ServerApp)
         
-    ServerApp.run(host="localhost", port=5000)
+    # ServerApp.run(host="localhost", port=5000)
+    # if __name__ == "__main__":
+    ServerApp.run(host="0.0.0.0", port=5000, debug=True)

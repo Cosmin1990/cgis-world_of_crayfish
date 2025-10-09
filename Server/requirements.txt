@@ -28,3 +28,5 @@ beautifulsoup4
 pypandoc
 python-magic
 pytest
+pandas
+openpyxl

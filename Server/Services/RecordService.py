@@ -1,6 +1,7 @@
 from flask import Blueprint, request, Response
 import json
 from pydantic import ValidationError
+from sqlalchemy.exc import IntegrityError
 
 from Database.DBConnection import db
 from Database.Model.Record import Record
@@ -179,9 +180,14 @@ def import_records_excel():
                 contributor=validated.contributor
             )
 
-            db.session.add(new_record)
-            db.session.flush()
-            success_count += 1
+            try:
+                db.session.add(new_record)
+                db.session.flush()
+                success_count += 1
+            except IntegrityError as ie:
+                db.session.rollback()
+                errors.append({"row": idx + 1, "errors": "Duplicate entry or integrity constraint violation"})
+                print(f"IntegrityError on row {idx + 1}: {ie}")
         except ValidationError as ve:
             errors.append({"row": idx + 1, "errors": ve.errors()})
             print(ve)

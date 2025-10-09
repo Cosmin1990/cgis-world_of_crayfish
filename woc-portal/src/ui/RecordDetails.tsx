@@ -11,7 +11,7 @@ function RecordDetails (){
 
     useEffect(() => {
         if(speciesName){
-            fetch("http://localhost:5000/records/species/"+speciesName) // example endpoint
+           fetch(`${process.env.REACT_APP_API_BASE_URL}/records/species/`+speciesName) // example endpoint
             .then((response) => response.json())
             .then((data) => {
               

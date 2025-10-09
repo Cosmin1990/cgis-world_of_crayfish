@@ -1,0 +1,89 @@
+version: "2"
+services:
+
+  mariadb:
+    image: mariadb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: pass
+      MYSQL_DATABASE: woc
+      MYSQL_USER: mu1
+      MYSQL_PASSWORD: mp1
+    networks:
+      vn2:
+        ipv4_address: 30.40.0.10
+    ports:
+      - "3308:3306"
+    volumes:
+        # pass volume named maria-data to mariadb container
+      - maria-data:/var/lib/mysql
+
+
+  server:
+    build: 
+      context: ./Server
+    image: wocserver
+    restart: always
+    environment:
+      FILEPATH_SEPARATOR: '/'
+      DATABASE_URI: 'mariadb+mariadbconnector://root:pass@mariadb:3306/woc'
+      DATA_ROOT: '/home/DATA_ROOT'
+    networks:
+      vn2:
+        ipv4_address: 30.40.0.11
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mariadb
+    volumes:
+      - ./server:/home/server/                    # Reacts to code modified(saved) while deployed -> restart/reinitialized server
+    command: ["python", "ServerApp.py", "init_db"]
+
+
+  portal:
+    build:
+      context: ./woc-portal
+      dockerfile: Dockerfile
+    container_name: woc-portal
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./woc-portal:/app
+      - /app/node_modules
+    restart: always
+    depends_on:
+      - server
+    networks:
+      - vn2
+
+
+  pma:
+    image: phpmyadmin/phpmyadmin:latest
+    restart: always
+    environment:
+      PMA_HOST: mariadb
+      PMA_USER: root
+      PMA_PASSWORD: pass
+      UPLOAD_LIMIT: 900M
+    ports:
+      - 8080:80
+    networks:
+      vn2:
+        ipv4_address: 30.40.0.12
+    depends_on:
+      - mariadb
+
+
+volumes:
+  maria-data:
+    driver: local
+
+
+networks:
+  vn2:
+    driver: bridge
+    ipam:
+     config:
+      - subnet: 30.40.0.0/16
+        gateway: 30.40.0.1
+    
