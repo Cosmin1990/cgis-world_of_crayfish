@@ -12,20 +12,23 @@ function Sidebar() {
     const [selectedRecord, setselectedRecord] = useState<Record>();
 
     useEffect(() => {
-      // fetch("http://localhost:5000/records/species_names") // example endpoint
        fetch(`${process.env.REACT_APP_API_BASE_URL}/records/species_names`).then((response) => response.json())
         .then((data) => {
           setAllSpecies(data);
           if (data.length > 0) {
             setSelectedSpecies(data[0]);
           }
-          console.log(data)
+          // console.log(data)
         })
         .catch((error) => {
           console.error("Error fetching species:", error);
         });
     }, []); // empty dependency array = runs only once on mount
 
+  const handleDisplaySelection = () => {
+      console.log("Button pressed, navigating to:", selectedSpecies);
+      navigate("/details/"+selectedSpecies);
+  };
 
   return (
     <div className="sidebar">
@@ -56,10 +59,6 @@ function Sidebar() {
 
             <h2>Species selector</h2>
             <form className="species-selector"
-                   onSubmit={(e) => {
-                        e.preventDefault(); // prevent form submission
-                        navigate("/details/"+selectedSpecies); // navigate to details page
-                    }}
             >
                 <label className="form-label form-element"> Crayfish genus: </label>
                 <select
@@ -78,7 +77,7 @@ function Sidebar() {
                 </select>
 
                 <br></br>
-                <button type="submit" className="display-button form-element">Display selection</button>
+                <button type="button" className="display-button form-element" onClick={handleDisplaySelection}>Display selection</button>
             </form>
         </div>
 

@@ -24,3 +24,4 @@ class User(Base):
     
     def get_user_id(self):
         return self.id
+    

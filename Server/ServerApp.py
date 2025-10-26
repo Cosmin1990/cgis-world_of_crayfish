@@ -1,18 +1,22 @@
 import sys
 import os
 from flask import Flask
+from flask_cors import CORS
 from Database.DBConnection import db
 from Services.UserService import UserService
 from Services.RecordService import RecordService
+from Services.SpeciesService import SpeciesService
 
 
 # Create Server
 ServerApp = Flask(__name__)
 
+# For development purposes only!!!!!!!
+CORS(ServerApp)
+
+
 # Configure Application Database access
-
 # ServerApp.config['SQLALCHEMY_DATABASE_URI'] =  "mysql+pymysql://root:pass@localhost:3308/woc"
-
 ServerApp.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URI")
 ServerApp.config['SQLALCHEMY_ECHO'] = True
 ServerApp.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -20,6 +24,7 @@ ServerApp.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Add web service files (blueprints)
 ServerApp.register_blueprint(UserService)
 ServerApp.register_blueprint(RecordService)
+ServerApp.register_blueprint(SpeciesService)
 
 
 # Start Server
