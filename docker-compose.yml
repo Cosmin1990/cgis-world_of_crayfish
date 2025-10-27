@@ -32,7 +32,7 @@ services:
       vn2:
         ipv4_address: 30.40.0.11
     ports:
-      - "5000:5000"
+      - "5001:5000"
     depends_on:
       - mariadb
     volumes:
