@@ -54,7 +54,7 @@ def getUserByName(userName):
 
     # Check that the username column in the table is equal to the supplied username
     user = User.query.filter_by(username=userName).first()
-    resp = Response(json.dumps(user.toSerializableObject(), indent=4), status=200, mimetype='application/json')
+    return build_response(UserOutDTO.model_validate(user).model_dump(), 200)
     return resp
 
 
@@ -65,7 +65,6 @@ def getUserbyID(userID):
 
     # Check that the username column in the table is equal to the supplied username
     user = User.query.get(userID)
-
-    resp = Response(json.dumps(user.toSerializableObject(), indent=4), status=200, mimetype='application/json')
+    return build_response(UserOutDTO.model_validate(user).model_dump(), 200)
     return resp
 

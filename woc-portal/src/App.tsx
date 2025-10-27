@@ -26,7 +26,8 @@ function App() {
                     <Route path="/about" element={<About />} />
                     <Route path="/cite" element={<Cite />} />
                     
-                 <Route path="/details/:speciesName" element={<RecordDetails />} />
+                 <Route path="/details/:speciesName" element={<RecordDetails key={window.location.pathname} />}
+/>
                 </Routes>
             </div>
         </BrowserRouter>
