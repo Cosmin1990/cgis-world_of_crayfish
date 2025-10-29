@@ -6,6 +6,7 @@ from Database.DBConnection import db
 from Services.UserService import UserService
 from Services.RecordService import RecordService
 from Services.SpeciesService import SpeciesService
+from Services.IUCBService import Iucn_bp
 
 
 # Create Server
@@ -25,6 +26,7 @@ ServerApp.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 ServerApp.register_blueprint(UserService)
 ServerApp.register_blueprint(RecordService)
 ServerApp.register_blueprint(SpeciesService)
+ServerApp.register_blueprint(Iucn_bp)
 
 
 # Start Server
