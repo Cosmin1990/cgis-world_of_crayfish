@@ -10,6 +10,7 @@ import PhotoArea from "./PhotoArea";
 import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import Assessment from "../model/Assessment";
 
 
 // MapComponent with memoization and dynamic center update
@@ -83,12 +84,13 @@ function RecordDetails() {
   const [selectedSpecies, setSelectedSpecies] = useState<Species>();
   const [selectedSpeciesCode, setSelectedSpeciesCode] = useState<number>();
   const [selectedSpeciesTaxonomy, setselectedSpeciesTaxonomy] = useState<string []>( [] );
+  const [selectedSpeciesEndangermentLevel, setselectedSpeciesEndangermentLevel] = useState<string> ();
 
     const [selectedSpeciesCitation, setSelectedSpeciesCitation] = useState<Citation>();
 
   useEffect(() => {
-    if (effectRan.current) return;
-    effectRan.current = true;
+    // if (effectRan.current) return;
+    // effectRan.current = true;
 
     if (speciesName) {
       // Fetch record data
@@ -159,133 +161,60 @@ function RecordDetails() {
               });
           }
         });
+
     }
   }, [speciesName]);
 
 useEffect(() => {
     // // Fetch citation record data
-    // fetch(`${process.env.REACT_APP_DECANET_API_BASE_URL}/AphiaSourcesByAphiaID/` + selectedSpeciesCode)
-    // .then((response) => response.json())
-    // .then((data) => {
-    //     const records: Citation[] = data as Citation[];
-    //     if (records.length>0){
-    //         setSelectedSpeciesCitation(records[0]);
-    //         console.log(records[0]);
-    //     }
-
-    // })
-    // .catch((error) => {
-    //     console.error("Error fetching species:", error);
-    // });
-
-    // MOCKUP DATA - test to avoid LIMITED API CALLS
-    const citation = new Citation(
-        278488,
-        "taxonomy source",
-        "Crandall, K.A.; De Grave, S. (2017). An updated classification of the freshwater crayfishes (Decapoda: Astacidea) of the world, with a complete species list. Journal of Crustacean Biology. 37: 615-653.",
-        "https://www.marinespecies.org/aphia.php?p=sourcedetails&id=278488",
-        "10.1093/jcbiol/rux070",
-        undefined,
-        undefined,
-        undefined,
-    );
-    setSelectedSpeciesCitation(citation);
-    console.log(citation);
+    fetch(`${process.env.REACT_APP_DECANET_API_BASE_URL}/AphiaSourcesByAphiaID/` + selectedSpeciesCode)
+    .then((response) => response.json())
+    .then((data) => {
+        const records: Citation[] = data as Citation[];
+        if (records.length>0){
+            setSelectedSpeciesCitation(records[0]);
+            console.log(records[0]);
+        }
+    })
+    .catch((error) => {
+        console.error("Error fetching species:", error);
+    });
 
 
     // Fetch taxonomy data
-    // fetch(`${process.env.REACT_APP_DECANET_API_BASE_URL}/AphiaClassificationByAphiaID/` + selectedSpeciesCode)
-    // .then((response) => response.json())
-    // .then((data) => {
-    //     const names = extractScientificNames(data);
-    //     setselectedSpeciesTaxonomy(names);
-    //     console.log("Extracted taxonomy:", names);
-    // })
-    // .catch((error) => {
-    //     console.error("Error fetching species:", error);
-    // });
+    fetch(`${process.env.REACT_APP_DECANET_API_BASE_URL}/AphiaClassificationByAphiaID/` + selectedSpeciesCode)
+    .then((response) => response.json())
+    .then((data) => {
+        const names = extractScientificNames(data);
+        setselectedSpeciesTaxonomy(names);
+        console.log("Extracted taxonomy:", names);
+    })
+    .catch((error) => {
+        console.error("Error fetching species:", error);
+    });
 
-    // MOCKUP DATA - test to avoid LIMITED API CALLS
-    const mockData = {
-      "AphiaID": 1,
-      "rank": "Superdomain",
-      "scientificname": "Biota",
-      "child": {
-        "AphiaID": 2,
-        "rank": "Kingdom",
-        "scientificname": "Animalia",
-        "child": {
-          "AphiaID": 1065,
-          "rank": "Phylum",
-          "scientificname": "Arthropoda",
-          "child": {
-            "AphiaID": 1066,
-            "rank": "Subphylum",
-            "scientificname": "Crustacea",
-            "child": {
-              "AphiaID": 845959,
-              "rank": "Superclass",
-              "scientificname": "Multicrustacea",
-              "child": {
-                "AphiaID": 1071,
-                "rank": "Class",
-                "scientificname": "Malacostraca",
-                "child": {
-                  "AphiaID": 1086,
-                  "rank": "Subclass",
-                  "scientificname": "Eumalacostraca",
-                  "child": {
-                    "AphiaID": 1089,
-                    "rank": "Superorder",
-                    "scientificname": "Eucarida",
-                    "child": {
-                      "AphiaID": 1130,
-                      "rank": "Order",
-                      "scientificname": "Decapoda",
-                      "child": {
-                        "AphiaID": 106670,
-                        "rank": "Suborder",
-                        "scientificname": "Pleocyemata",
-                        "child": {
-                          "AphiaID": 106672,
-                          "rank": "Infraorder",
-                          "scientificname": "Astacidea",
-                          "child": {
-                            "AphiaID": 196146,
-                            "rank": "Superfamily",
-                            "scientificname": "Astacoidea",
-                            "child": {
-                              "AphiaID": 234095,
-                              "rank": "Family",
-                              "scientificname": "Cambaridae",
-                              "child": {
-                                "AphiaID": 885050,
-                                "rank": "Genus",
-                                "scientificname": "Cambarus",
-                                "child": {
-                                  "AphiaID": 885721,
-                                  "rank": "Species",
-                                  "scientificname": "Cambarus bartonii",
-                                  "child": null
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
+
+    // Only run if speciesName exists and is non-empty
+    if (speciesName) {
+      // Parse genus and species epithet
+      const [genusName, speciesEpithet] = speciesName.split(" ");
+
+      // Fetch Endangerment Assessment data
+      fetch(`${process.env.REACT_APP_API_BASE_URL}/iucn/taxa?genus=${genusName}&species=${speciesEpithet}`)
+        .then((response) => response.json())
+        .then((data) => {
+          const assessment: Assessment = data as Assessment;
+          if (assessment && assessment.danger_level !== selectedSpeciesEndangermentLevel) {
+            setselectedSpeciesEndangermentLevel(assessment.danger_level);
+            console.log("Species:", assessment.scientific_name);
+            console.log("Danger LEVEL:", assessment.danger_level);
           }
-        }
-      }
-    };
-    const names = extractScientificNames(mockData);
-    setselectedSpeciesTaxonomy(names);
-    console.log("Mocked taxonomy:", names);
-}, [selectedSpeciesCode]);
+        })
+        .catch((error) => {
+          console.error("Error fetching species:", error);
+        });
+    }
+}, [selectedSpecies, selectedSpeciesCode]);
 
 
   return (
@@ -318,15 +247,13 @@ useEffect(() => {
 
                         {/* Taxonomy */}
                         <div style={{ backgroundColor: "lightgreen", padding: "1em", borderRadius: "8px", marginTop: "1em", width: "99%" }}>
-                          
                           <ul style={{ display: "flex", flexWrap: "wrap", gap: "0.5em", listStyleType: "disc", paddingLeft: "1.5em", margin: 0 }}>
                             {selectedSpeciesTaxonomy.map((name, index) => (
                               <li key={index} style={{ marginRight: "1em" }}>{name}</li>
                             ))}
                           </ul>
                           <div style={{ marginTop: "0.5em" }}>
-                            <a
-                              href="#"
+                            <a href="#"
                               onClick={(e) => {
                                 e.preventDefault();
                                 navigator.clipboard.writeText(selectedSpeciesTaxonomy.join(", "));
@@ -339,10 +266,29 @@ useEffect(() => {
                           </div>
                         </div>
 
+                       {selectedSpeciesEndangermentLevel && (
+                         <div style={{ width: "100%", marginTop: "1em" }}>
+                           <div className="acknowledgement">
+                             API calls powered by: IUCN 2025. IUCN Red List of Threatened Species. Version 2025-2 &lt;www.iucnredlist.org&gt;
+                           </div>
+                           <img
+                             src={`/levels/${selectedSpeciesEndangermentLevel}.svg`}
+                             alt="Endangerment Level"
+                             style={{
+                               width: "70%",
+                               height: "auto",
+                               display: "block",
+                               margin: "0 auto",
+                               transform: "scaleY(0.99)",
+                             }}
+                           />
+                         </div>
+                       )}
+
                     </>
       
                 )}
-            
+      {/* K1gqHaXiz8LrWrriLbahrf7Bviunq8tfpmvx       */}
    
 {/* 
             <div style={{ marginTop: "1em", fontWeight: "bold" }}>
@@ -373,3 +319,103 @@ useEffect(() => {
 }
 
 export default RecordDetails;
+
+
+
+
+// ========================================================= MOCKUP DATA - Replace API CALLS ===============================================
+
+// MOCKUP DATA - test to avoid LIMITED API CALLS
+    // const citation = new Citation(
+    //     278488,
+    //     "taxonomy source",
+    //     "Crandall, K.A.; De Grave, S. (2017). An updated classification of the freshwater crayfishes (Decapoda: Astacidea) of the world, with a complete species list. Journal of Crustacean Biology. 37: 615-653.",
+    //     "https://www.marinespecies.org/aphia.php?p=sourcedetails&id=278488",
+    //     "10.1093/jcbiol/rux070",
+    //     undefined,
+    //     undefined,
+    //     undefined,
+    // );
+    // setSelectedSpeciesCitation(citation);
+    // console.log(citation);
+
+    // MOCKUP DATA - test to avoid LIMITED API CALLS
+    // const mockData = {
+    //   "AphiaID": 1,
+    //   "rank": "Superdomain",
+    //   "scientificname": "Biota",
+    //   "child": {
+    //     "AphiaID": 2,
+    //     "rank": "Kingdom",
+    //     "scientificname": "Animalia",
+    //     "child": {
+    //       "AphiaID": 1065,
+    //       "rank": "Phylum",
+    //       "scientificname": "Arthropoda",
+    //       "child": {
+    //         "AphiaID": 1066,
+    //         "rank": "Subphylum",
+    //         "scientificname": "Crustacea",
+    //         "child": {
+    //           "AphiaID": 845959,
+    //           "rank": "Superclass",
+    //           "scientificname": "Multicrustacea",
+    //           "child": {
+                // "AphiaID": 1071,
+                // "rank": "Class",
+                // "scientificname": "Malacostraca",
+                // "child": {
+                //   "AphiaID": 1086,
+                //   "rank": "Subclass",
+                //   "scientificname": "Eumalacostraca",
+                //   "child": {
+                //     "AphiaID": 1089,
+                //     "rank": "Superorder",
+                //     "scientificname": "Eucarida",
+                //     "child": {
+                //       "AphiaID": 1130,
+                //       "rank": "Order",
+                //       "scientificname": "Decapoda",
+                //       "child": {
+                //         "AphiaID": 106670,
+                //         "rank": "Suborder",
+                //         "scientificname": "Pleocyemata",
+                //         "child": {
+                //           "AphiaID": 106672,
+                //           "rank": "Infraorder",
+                //           "scientificname": "Astacidea",
+                //           "child": {
+                //             "AphiaID": 196146,
+                //             "rank": "Superfamily",
+                //             "scientificname": "Astacoidea",
+                //             "child": {
+                //               "AphiaID": 234095,
+                //               "rank": "Family",
+                //               "scientificname": "Cambaridae",
+    //                           "child": {
+    //                             "AphiaID": 885050,
+    //                             "rank": "Genus",
+    //                             "scientificname": "Cambarus",
+    //                             "child": {
+    //                               "AphiaID": 885721,
+    //                               "rank": "Species",
+    //                               "scientificname": "Cambarus bartonii",
+    //                               "child": null
+    //                             }
+    //                           }
+    //                         }
+    //                       }
+    //                     }
+    //                   }
+    //                 }
+    //               }
+    //             }
+    //           }
+    //         }
+    //       }
+    //     }
+    //   }
+    // };
+    // const names = extractScientificNames(mockData);
+    // setselectedSpeciesTaxonomy(names);
+    // console.log("Mocked taxonomy:", names);
