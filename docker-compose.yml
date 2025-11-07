@@ -75,7 +75,7 @@ services:
     depends_on:
       - server
     networks:
-      - vn1
+      - vn2
 
   pma:
     image: phpmyadmin/phpmyadmin:latest
