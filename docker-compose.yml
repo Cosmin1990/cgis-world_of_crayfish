@@ -54,7 +54,7 @@ services:
       dockerfile: Dockerfile
     container_name: woc-portal
     ports:
-      - "30000:3000"
+      - "443:3000"
     volumes:
       - ./woc-portal:/app
       - /app/node_modules
