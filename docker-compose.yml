@@ -51,6 +51,8 @@ services:
   portal:
     build:
       context: ./woc-portal
+      args:
+        PUBLIC_URL: "/woc"
       dockerfile: Dockerfile
     container_name: woc-portal
     ports:
