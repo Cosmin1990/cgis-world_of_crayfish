@@ -38,7 +38,7 @@ services:
       vn2:
         ipv4_address: 30.40.0.11
     ports:
-      - "3310:5000"
+      - "5001:5000"
     depends_on:
       mariadb:
           condition: service_healthy
@@ -54,7 +54,7 @@ services:
       dockerfile: Dockerfile
     container_name: woc-portal
     ports:
-      - "3000:3000"
+      - "3310:3000"
     volumes:
       - ./woc-portal:/app
       - /app/node_modules
