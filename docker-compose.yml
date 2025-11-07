@@ -17,6 +17,12 @@ services:
     volumes:
         # pass volume named maria-data to mariadb container
       - maria-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 
   server:
@@ -32,9 +38,11 @@ services:
       vn2:
         ipv4_address: 30.40.0.11
     ports:
-      - "5001:5000"
+      - "3310:5000"
     depends_on:
-      - mariadb
+      mariadb:
+          condition: service_healthy
+          restart: true
     volumes:
       - ./server:/home/server/                    # Reacts to code modified(saved) while deployed -> restart/reinitialized server
     command: ["python", "ServerApp.py", "init_db"]
