@@ -10,7 +10,9 @@ const root = ReactDOM.createRoot(
 );
 root.render(
   <React.StrictMode>
-    <App />
+    <BrowserRouter basename="/woc">
+      <App />
+    </BrowserRouter>
   </React.StrictMode>
 );
 
