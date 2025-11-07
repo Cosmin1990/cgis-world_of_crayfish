@@ -14,7 +14,6 @@ import RecordDetails from './ui/RecordDetails';
 function App() {
   return (
 
-        <BrowserRouter>
             <div className="App" style={{ display: 'flex', height: '100vh' }}>
                 <Sidebar />
                 <Routes>
@@ -30,7 +29,7 @@ function App() {
 />
                 </Routes>
             </div>
-        </BrowserRouter>
+        
   );
 }
 

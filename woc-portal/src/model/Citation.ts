@@ -3,8 +3,8 @@
             public source_id: number,
             public use: string,
             public reference: string,
-            public url: string,
-            public doi: string,
+            public url?: string,
+            public doi?: string,
 
             public page?: number|undefined,
             public link?: string|undefined,

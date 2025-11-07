@@ -17,11 +17,17 @@ services:
     volumes:
         # pass volume named maria-data to mariadb container
       - maria-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 
   server:
     build: 
-      context: ./Server
+      context: ./woc-server
     image: wocserver
     restart: always
     environment:
@@ -34,19 +40,25 @@ services:
     ports:
       - "5001:5000"
     depends_on:
-      - mariadb
+      mariadb:
+          condition: service_healthy
+          restart: true
     volumes:
-      - ./server:/home/server/                    # Reacts to code modified(saved) while deployed -> restart/reinitialized server
+      - ./woc-server:/home/server/                    # Reacts to code modified(saved) while deployed -> restart/reinitialized server
     command: ["python", "ServerApp.py", "init_db"]
 
 
   portal:
     build:
       context: ./woc-portal
+      args:
+        REACT_APP_PUBLIC_URL: "${PUBLIC_URL}"
+        PUBLIC_URL: "${PUBLIC_URL}"
+        REACT_APP_API_ROOT: "${API_ROOT}"
       dockerfile: Dockerfile
     container_name: woc-portal
     ports:
-      - "3000:3000"
+      - "3310:3000"
     volumes:
       - ./woc-portal:/app
       - /app/node_modules
@@ -56,6 +68,18 @@ services:
     networks:
       - vn2
 
+  nginx:
+    image: nginx:latest
+    ports:
+      - "30000:80"
+      - "443:443"
+    volumes:
+      - ./woc-server/nginx.conf:/etc/nginx/nginx.conf
+      - ./woc-server/cert:/home/cert/
+    depends_on:
+      - server
+    networks:
+      - vn2
 
   pma:
     image: phpmyadmin/phpmyadmin:latest

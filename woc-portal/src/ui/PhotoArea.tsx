@@ -5,9 +5,9 @@ import Record from "../model/Record";
 
 function PhotoArea() {
     const photos = [
-        "/crayfish_1.jpg",
-        "/crayfish_2.jpg",
-        "/crayfish_3.jpg"
+        process.env.REACT_APP_PUBLIC_URL + "/crayfish_1.jpg",
+        process.env.REACT_APP_PUBLIC_URL + "/crayfish_2.jpg",
+        process.env.REACT_APP_PUBLIC_URL + "/crayfish_3.jpg"
     ];
 
     return (
