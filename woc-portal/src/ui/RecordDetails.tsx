@@ -167,7 +167,7 @@ function RecordDetails() {
 
 useEffect(() => {
     // // Fetch citation record data
-    fetch(`${process.env.REACT_APP_DECANET_API_BASE_URL}/AphiaSourcesByAphiaID/` + selectedSpeciesCode)
+    fetch(`${process.env.REACT_APP_API_BASE_URL}/AphiaSourcesByAphiaID/` + selectedSpeciesCode)
     .then((response) => response.json())
     .then((data) => {
         const records: Citation[] = data as Citation[];
@@ -182,7 +182,7 @@ useEffect(() => {
 
 
     // Fetch taxonomy data
-    fetch(`${process.env.REACT_APP_DECANET_API_BASE_URL}/AphiaClassificationByAphiaID/` + selectedSpeciesCode)
+    fetch(`${process.env.REACT_APP_API_BASE_URL}/AphiaClassificationByAphiaID/` + selectedSpeciesCode)
     .then((response) => response.json())
     .then((data) => {
         const names = extractScientificNames(data);

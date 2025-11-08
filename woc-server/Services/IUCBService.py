@@ -51,7 +51,59 @@ def get_taxa():
     # return (response.text, response.status_code, response.headers.items())
 
 
+@Iucn_bp.route('/AphiaSourcesByAphiaID/<int:aphia_id>', methods=['GET'])
+def get_aphia_sources(aphia_id):
+    """
+    Proxy for WoRMS AphiaSourcesByAphiaID.
+    Frontend calls:
+      `${REACT_APP_DECANET_API_BASE_URL}/AphiaSourcesByAphiaID/${selectedSpeciesCode}`
+    """
+    worms_url = f"https://www.marinespecies.org/rest/AphiaSourcesByAphiaID/{aphia_id}"
+
+    try:
+        response = requests.get(worms_url, timeout=10)
+        response.raise_for_status()
+
+        data = response.json()  # this is the list of citations from WoRMS
+
+        # If you want to keep the same behavior as your React code
+        # (which takes records[0]), just return the whole list and let
+        # React pick the first element, or uncomment below to only send the first:
+        #
+        # if isinstance(data, list) and data:
+        #     data = data[0]
+
+        print(f"AphiaSourcesByAphiaID {aphia_id}: {data}")
+        return build_response(data, response.status_code)
+    except requests.exceptions.RequestException as e:
+        print(f"Error calling WoRMS AphiaSourcesByAphiaID: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
+@Iucn_bp.route('/AphiaClassificationByAphiaID/<int:aphia_id>', methods=['GET'])
+def get_aphia_classification(aphia_id):
+    """
+    Proxy for WoRMS AphiaClassificationByAphiaID.
+    Frontend calls:
+      `${REACT_APP_DECANET_API_BASE_URL}/AphiaClassificationByAphiaID/${selectedSpeciesCode}`
+    """
+    worms_url = f"https://www.marinespecies.org/rest/AphiaClassificationByAphiaID/{aphia_id}"
+
+    try:
+        response = requests.get(worms_url, timeout=10)
+        response.raise_for_status()
+
+        data = response.json()  # WoRMS returns a nested classification JSON object
+
+        # Optional: print or preprocess data if you want
+        print(f"AphiaClassificationByAphiaID {aphia_id}: {data}")
+
+        # Send the raw JSON to frontend (your React code will parse it)
+        return build_response(data, response.status_code)
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error calling WoRMS AphiaClassificationByAphiaID: {e}")
+        return jsonify({"error": str(e)}), 500
+    
    
 # http://localhost:5000/iucn/taxa?genus=astacus&species=astacus`
