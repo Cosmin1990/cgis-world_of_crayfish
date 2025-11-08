@@ -44,7 +44,7 @@ services:
           condition: service_healthy
           restart: true
     volumes:
-      - ./server:/home/server/                    # Reacts to code modified(saved) while deployed -> restart/reinitialized server
+      - ./woc-server:/home/server/                    # Reacts to code modified(saved) while deployed -> restart/reinitialized server
     command: ["python", "ServerApp.py", "init_db"]
 
 
