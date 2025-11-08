@@ -272,7 +272,7 @@ useEffect(() => {
                              API calls powered by: IUCN 2025. IUCN Red List of Threatened Species. Version 2025-2 &lt;www.iucnredlist.org&gt;
                            </div>
                            <img
-                             src={`/levels/${selectedSpeciesEndangermentLevel}.svg`}
+                             src={process.env.REACT_APP_PUBLIC_URL + `/levels/${selectedSpeciesEndangermentLevel}.svg`}
                              alt="Endangerment Level"
                              style={{
                                width: "70%",
