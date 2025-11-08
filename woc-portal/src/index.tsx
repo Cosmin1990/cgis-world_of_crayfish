@@ -11,7 +11,7 @@ const root = ReactDOM.createRoot(
 );
 root.render(
   <React.StrictMode>
-    <BrowserRouter basename="/woc/">
+    <BrowserRouter basename="/woc">
       <App />
     </BrowserRouter>
   </React.StrictMode>
