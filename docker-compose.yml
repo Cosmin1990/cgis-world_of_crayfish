@@ -52,7 +52,9 @@ services:
     build:
       context: ./woc-portal
       args:
-        PUBLIC_URL: "/woc"
+        REACT_APP_PUBLIC_URL: "${PUBLIC_URL}"
+        PUBLIC_URL: "${PUBLIC_URL}"
+        REACT_APP_API_ROOT: "${API_ROOT}"
       dockerfile: Dockerfile
     container_name: woc-portal
     ports:
