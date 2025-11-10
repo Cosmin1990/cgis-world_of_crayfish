@@ -55,7 +55,7 @@ services:
         REACT_APP_PUBLIC_URL: "${PUBLIC_URL}"
         PUBLIC_URL: "${PUBLIC_URL}"
         REACT_APP_API_ROOT: "${API_ROOT}"
-        REACT_APP_API_BASE_URL: "${API_BASE_URL}"
+        REACT_APP_API_BASE_URL: "${REACT_APP_API_BASE_URL}"
       dockerfile: Dockerfile
     container_name: woc-portal
     ports:
