@@ -105,5 +105,36 @@ def get_aphia_classification(aphia_id):
         print(f"Error calling WoRMS AphiaClassificationByAphiaID: {e}")
         return jsonify({"error": str(e)}), 500
     
+
+@Iucn_bp.route('/AphiaRecordByAphiaID/<int:aphia_id>', methods=['GET'])
+def get_aphia_record(aphia_id):
+    """
+    Proxy for WoRMS AphiaRecordByAphiaID.
+    Frontend will call:
+      `${REACT_APP_API_BASE_URL}/AphiaRecordByAphiaID/${selectedSpeciesCode}`
+    """
+    worms_url = f"https://www.marinespecies.org/rest/AphiaRecordByAphiaID/{aphia_id}"
+
+    try:
+        response = requests.get(worms_url, timeout=10)
+        response.raise_for_status()
+
+        worms_data = response.json()  # full Aphia record
+
+        # Extract just what the frontend needs for the citation
+        result = {
+            "aphia_id": worms_data.get("AphiaID"),
+            "scientific_name": worms_data.get("scientificname"),
+            "citation": worms_data.get("citation"),
+            # WoRMS often gives a URL, but we can also build the taxdetails URL
+            "url": worms_data.get("url") or f"https://www.marinespecies.org/aphia.php?p=taxdetails&id={aphia_id}",
+        }
+
+        print(f"AphiaRecordByAphiaID {aphia_id}: {result}")
+        return build_response(result, response.status_code)
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error calling WoRMS AphiaRecordByAphiaID: {e}")
+        return jsonify({"error": str(e)}), 500
    
 # http://localhost:5000/iucn/taxa?genus=astacus&species=astacus`
