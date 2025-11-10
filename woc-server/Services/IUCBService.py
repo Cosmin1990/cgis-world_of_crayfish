@@ -126,6 +126,7 @@ def get_aphia_record(aphia_id):
             "aphia_id": worms_data.get("AphiaID"),
             "scientific_name": worms_data.get("scientificname"),
             "citation": worms_data.get("citation"),
+            "authority": worms_data.get("authority"),
             # WoRMS often gives a URL, but we can also build the taxdetails URL
             "url": worms_data.get("url") or f"https://www.marinespecies.org/aphia.php?p=taxdetails&id={aphia_id}",
         }

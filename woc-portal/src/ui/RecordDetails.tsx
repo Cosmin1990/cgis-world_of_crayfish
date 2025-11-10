@@ -181,7 +181,7 @@ function RecordDetails() {
         const citation = new Citation(
           Number(data.aphia_id) || 0, // source_id
           "taxonomy source", // use
-          data.citation ?? "", // reference
+          data.authority ?? "", // reference
           data.url ??
             `https://www.marinespecies.org/aphia.php?p=taxdetails&id=${selectedSpeciesCode}`, // url
           "" // doi – unknown here
