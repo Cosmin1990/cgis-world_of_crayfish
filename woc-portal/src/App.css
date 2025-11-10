@@ -39,7 +39,6 @@
 
 .sidebar {
   width: 22%;
-  height: 100vh;
   background: rgba(242, 228, 167, 255);
   border-right: 5px solid rgba(200, 180, 120, 1);
   box-shadow: 4px 0 15px rgba(0, 0, 0, 0.3);
@@ -121,7 +120,7 @@
 
 .dashboard{
     width: 78%;
-    height: 100vh;
+    min-height: 100vh;
     background: rgba(248, 240, 203, 255);
     padding: 2rem;
     box-sizing: border-box;
