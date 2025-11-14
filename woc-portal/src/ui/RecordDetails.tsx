@@ -23,6 +23,15 @@ const MapComponent = React.memo(({ latitude, longitude }: MapComponentProps) => 
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
 
+  // Force Leaflet to recalculate map size after mount (fixes blank space)
+  useEffect(() => {
+    if (mapRef.current) {
+      setTimeout(() => {
+        mapRef.current!.invalidateSize();
+      }, 0);
+    }
+  }, []);
+
 //   // Update map center and marker when coordinates change
 //   useEffect(() => {
 //     if (mapRef.current && latitude && longitude) {
@@ -77,6 +86,7 @@ function extractScientificNames(node: any): string[] {
 }
 
 function RecordDetails() {
+  const [taxonomyClicked, setTaxonomyClicked] = useState(false);
   const { speciesName } = useParams();
   const effectRan = useRef(false);
 
@@ -84,7 +94,7 @@ function RecordDetails() {
   const [selectedSpecies, setSelectedSpecies] = useState<Species>();
   const [selectedSpeciesCode, setSelectedSpeciesCode] = useState<number>();
   const [selectedSpeciesTaxonomy, setselectedSpeciesTaxonomy] = useState<string []>( [] );
-  const [selectedSpeciesEndangermentLevel, setselectedSpeciesEndangermentLevel] = useState<string> ();
+  const [selectedSpeciesEndangermentLevel, setselectedSpeciesEndangermentLevel] = useState<string | null> (null);
 
     const [selectedSpeciesCitation, setSelectedSpeciesCitation] = useState<Citation>();
 
@@ -195,6 +205,8 @@ useEffect(() => {
 
 
     // Only run if speciesName exists and is non-empty
+    console.log("+++++++++++++++++++")
+    console.log(speciesName)
     if (speciesName) {
       // Parse genus and species epithet
       const [genusName, speciesEpithet] = speciesName.split(" ");
@@ -204,10 +216,13 @@ useEffect(() => {
         .then((response) => response.json())
         .then((data) => {
           const assessment: Assessment = data as Assessment;
-          if (assessment && assessment.danger_level !== selectedSpeciesEndangermentLevel) {
+          console.log(assessment)
+          if (assessment && assessment.danger_level) {
             setselectedSpeciesEndangermentLevel(assessment.danger_level);
             console.log("Species:", assessment.scientific_name);
             console.log("Danger LEVEL:", assessment.danger_level);
+          } else {
+            setselectedSpeciesEndangermentLevel(null);
           }
         })
         .catch((error) => {
@@ -218,7 +233,10 @@ useEffect(() => {
 
 
   return (
-    <div className="dashboard" style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", color: "navy" }}>
+ <div
+   className="dashboard right-side"
+   style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", overflow: "visible" }}
+ >
       {/* <h1 style={{ marginTop: "0.1em", marginBottom: "0.3em" }}>
         Record details for {speciesName}:
       </h1> */}
@@ -253,13 +271,22 @@ useEffect(() => {
                             ))}
                           </ul>
                           <div style={{ marginTop: "0.5em" }}>
-                            <a href="#"
+                            <a
+                              href="#"
                               onClick={(e) => {
                                 e.preventDefault();
                                 navigator.clipboard.writeText(selectedSpeciesTaxonomy.join(", "));
-                                // alert("Taxonomy copied to clipboard!");
+                                setTaxonomyClicked(true);
+                                setTimeout(() => setTaxonomyClicked(false), 200); // pressed effect for 200ms
                               }}
-                              style={{ color: "blue", textDecoration: "underline", cursor: "pointer" }}
+                              style={{
+                                color: "blue",
+                                textDecoration: "underline",
+                                cursor: "pointer",
+                                transform: taxonomyClicked ? "translateY(2px)" : "translateY(2px)",
+                                boxShadow: taxonomyClicked ? "inset 2px 2px 2px 2px rgba(0,0,0,0.2)" : "none",
+                                transition: "all 0.1s ease-in-out",
+                              }} 
                             >
                               Copy taxonomy
                             </a>
@@ -319,6 +346,10 @@ useEffect(() => {
 }
 
 export default RecordDetails;
+
+
+
+
 
 
 

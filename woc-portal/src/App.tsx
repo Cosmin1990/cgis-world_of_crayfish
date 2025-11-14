@@ -15,8 +15,9 @@ function App() {
   return (
 
         <BrowserRouter>
-            <div className="App" style={{ display: 'flex', height: '100vh' }}>
+            <div className="App" style={{ display: 'flex', height: '100vh', width: '100%', overflow: 'hidden' }}>
                 <Sidebar />
+                <div style={{ flex: 1, height: '100vh', width: '100%', overflow: 'auto' }}>
                 <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/register" element={<Register />} />
@@ -29,6 +30,7 @@ function App() {
                  <Route path="/details/:speciesName" element={<RecordDetails key={window.location.pathname} />}
 />
                 </Routes>
+                </div>
             </div>
         </BrowserRouter>
   );

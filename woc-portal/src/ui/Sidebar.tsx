@@ -72,8 +72,8 @@ function Sidebar() {
                     ))}
                 </select>
 
-                <label className="form-label form-element"> Crayfish species: </label>
-                <select className="selector form-element" name="crayfish-sopecies">
+                <label className="form-label form-element" style={{ opacity: 0.5 }}> Crayfish species: </label>
+                <select className="selector form-element" name="crayfish-sopecies" disabled>
                 </select>
 
                 <br></br>
