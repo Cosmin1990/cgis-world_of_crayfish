@@ -233,7 +233,7 @@ function RecordDetails() {
             console.log("Species:", assessment.scientific_name);
             console.log("Danger LEVEL:", assessment.danger_level);
           } else {
-            setselectedSpeciesEndangermentLevel(null);
+            setselectedSpeciesEndangermentLevel(undefined);
           }
         })
         .catch((error) => {
