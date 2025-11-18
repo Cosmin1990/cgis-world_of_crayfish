@@ -46,7 +46,7 @@ function Sidebar() {
             </h2>
         </div>
         <img
-            src="/woc_logo.png"
+            src={process.env.REACT_APP_PUBLIC_URL + "/woc_logo.png"}
             alt="Logo"
             className="sidebar-logo"
         />

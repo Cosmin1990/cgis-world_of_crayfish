@@ -18,18 +18,17 @@ function App() {
             <div className="App" style={{ display: 'flex', height: '100vh', width: '100%', overflow: 'hidden' }}>
                 <Sidebar />
                 <div style={{ flex: 1, height: '100vh', width: '100%', overflow: 'auto' }}>
-                <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/signin" element={<SignIn />} />
+                    <Routes>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/register" element={<Register />} />
+                        <Route path="/signin" element={<SignIn />} />
 
-                    <Route path="/join" element={<Join />} />
-                    <Route path="/about" element={<About />} />
-                    <Route path="/cite" element={<Cite />} />
-                    
-                 <Route path="/details/:speciesName" element={<RecordDetails key={window.location.pathname} />}
-/>
-                </Routes>
+                        <Route path="/join" element={<Join />} />
+                        <Route path="/about" element={<About />} />
+                        <Route path="/cite" element={<Cite />} />
+                        
+                        <Route path="/details/:speciesName" element={<RecordDetails key={window.location.pathname} />} />
+                    </Routes>
                 </div>
             </div>
         </BrowserRouter>
