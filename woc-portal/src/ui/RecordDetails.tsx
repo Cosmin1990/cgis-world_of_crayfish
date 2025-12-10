@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useParams } from "react-router-dom";
 
 import Record from "../model/Record";
@@ -6,66 +6,13 @@ import Species from "../model/Species";
 import Citation from "../model/Citation";
 import Assessment from "../model/Assessment";
 
-import RecordDetailsTable from "./RecordDetailsTable";
+import MapComponent from "./HexLayeredMap";
+import GeoLocation from '../model/GeoLocation';
 import PhotoArea from "./PhotoArea";
 
-import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import L from "leaflet";
 
-// ======================= MapComponent =======================
 
-interface MapComponentProps {
-  latitude: number | undefined;
-  longitude: number | undefined;
-}
-
-const MapComponent = React.memo(({ latitude, longitude }: MapComponentProps) => {
-  const mapRef = useRef<L.Map | null>(null);
-  const markerRef = useRef<L.Marker | null>(null);
-
-  // Force Leaflet to recalculate map size after mount (fixes blank space)
-  useEffect(() => {
-    if (mapRef.current) {
-      setTimeout(() => {
-        mapRef.current!.invalidateSize();
-      }, 0);
-    }
-  }, []);
-
-//   // Update map center and marker when coordinates change
-//   useEffect(() => {
-//     if (mapRef.current && latitude && longitude) {
-//       const newCenter: L.LatLngExpression = [latitude, longitude];
-//       mapRef.current.setView(newCenter, 13);
-//       if (markerRef.current) {
-//         markerRef.current.setLatLng(newCenter);
-//       }
-//     }
-//   }, [latitude, longitude]);
-
-  return (
-    <MapContainer
-      center={[45.0, 24.65] as L.LatLngExpression} // Initial fallback center
-      zoom={6}
-      style={{ height: "100%", width: "100%" }}
-      ref={mapRef}
-      key="static-map"
-    >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      />
-      {/* If you want a marker, uncomment this and the effect above */}
-      {/* {latitude && longitude && (
-        <Marker
-          position={[latitude, longitude]}
-          ref={markerRef}
-        />
-      )} */}
-    </MapContainer>
-  );
-});
 
 // ======================= Helper: taxonomy names =======================
 
@@ -101,6 +48,7 @@ function RecordDetails() {
     string | undefined
   >();
   const [selectedSpeciesCitation, setSelectedSpeciesCitation] = useState<Citation>();
+  const [selectedSpeciesLocations, setSelectedSpeciesLocations] = useState<GeoLocation []>( [] ); 
 
   // ------------------- First effect: record + species + AphiaID -------------------
 
@@ -176,6 +124,20 @@ function RecordDetails() {
             });
         }
       });
+
+    // Fetch Species Locations
+    fetch(`${process.env.REACT_APP_API_BASE_URL}/records/species/` + speciesName + "/locations")
+      .then((response) => response.json())
+      .then((data) => {
+        const locations: GeoLocation[] = data as GeoLocation[];
+        // setSelectedSpeciesLocations(locations);
+        setSelectedSpeciesLocations([...locations]); // spread ensures new reference
+      })
+      .catch((error) => {
+        console.error("Error fetching species locations:", error);
+      });
+
+
   }, [speciesName]);
 
   // ------------------- Second effect: citation + taxonomy + IUCN -------------------
@@ -369,7 +331,8 @@ function RecordDetails() {
 
             <div style={{ flex: "0 0 70%", height: "100%" }}>
               {/* Use real coords from selectedRecord if you have them */}
-              <MapComponent latitude={45.0} longitude={24.15} />
+              <MapComponent latitude={45.0} longitude={24.15} points={selectedSpeciesLocations} />
+              {/* <MapComponent latitude={23.0} longitude={42.15} points={selectedSpeciesLocations} /> */}
             </div>
           </div>
         </>

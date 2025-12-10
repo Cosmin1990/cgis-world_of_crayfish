@@ -52,6 +52,13 @@ class RecordSchema(BaseModel):
         from_attributes = True
 
 
+class RecordLocationOutDTO(BaseModel):
+    latitude: float
+    longitude: float
+
+    class Config:
+        from_attributes = True
+
 
 class RecordOutDTO(BaseModel):
     id: int

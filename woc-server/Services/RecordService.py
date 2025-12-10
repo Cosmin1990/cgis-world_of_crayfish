@@ -85,6 +85,7 @@ def get_distinct_crayfish_names():
 from flask import Blueprint, jsonify, abort
 from Database.Model.Record import Record
 from Database.Schema.RecordSchema import RecordOutDTO
+from Database.Schema.RecordSchema import RecordLocationOutDTO
 
 
 @RecordService.route('/records/species/<string:species_name>', methods=['GET'])
@@ -97,7 +98,30 @@ def get_record_by_species(species_name: str):
         abort(404, description=f"No record found for species: {species_name}")
 
     return build_response(RecordOutDTO.model_validate(record).model_dump(), 200)
-# jsonify(RecordOutDTO.model_validate(record).model_dump())
+
+
+
+# New endpoint: Get locations for a given species
+@RecordService.route('/records/species/<string:species_name>/locations', methods=['GET'])
+def get_record_locations_by_species(species_name: str):
+    records = db.session.query(Record.coord_x, Record.coord_y).filter(
+        Record.crayfish_scientific_name == species_name
+    ).all()
+
+    if not records:
+        abort(404, description=f"No locations found for species: {species_name}")
+
+    dto_list = [
+        RecordLocationOutDTO(
+            latitude=r[1],
+            longitude=r[0]
+        ).model_dump()
+        for r in records
+    ]
+
+    return build_response(dto_list, 200)
+
+
 
 
 
