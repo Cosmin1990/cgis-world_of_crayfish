@@ -140,3 +140,7 @@
     padding: 2rem;
     box-sizing: border-box;
 }
+
+.controlLabel {
+  text-align: left;
+}

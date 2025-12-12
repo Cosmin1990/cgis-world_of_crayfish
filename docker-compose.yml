@@ -45,6 +45,7 @@ services:
           restart: true
     volumes:
       - ./woc-server:/home/server/                    # Reacts to code modified(saved) while deployed -> restart/reinitialized server
+      - file-storage:/home/DATA_FILES
     command: ["python", "ServerApp.py", "init_db"]
 
 
@@ -77,6 +78,7 @@ services:
     volumes:
       - ./woc-server/nginx.conf:/etc/nginx/nginx.conf
       - ./woc-server/cert:/home/cert/
+      - file-storage:/home/DATA_FILES
     depends_on:
       - server
     networks:
@@ -101,6 +103,8 @@ services:
 
 volumes:
   maria-data:
+    driver: local
+  file-storage:
     driver: local
 
 

@@ -20,6 +20,6 @@ COPY . /home/server/
 
 ENV FLASK_ENV=debug
 # Launch server app
-CMD ["python", "ServerApp.py"]
+CMD ["python", "ServerApp.py init_db"]
 # CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "wsgi:ChemiFlaskApp"]
                  

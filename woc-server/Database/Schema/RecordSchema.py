@@ -22,11 +22,13 @@ class RecordSchema(BaseModel):
     woc_id: str = Field(..., min_length=5, max_length=255)
     
     doi: Optional[str] = Field(None, max_length=255)
-    url: Optional[str] = Field(None, max_length=255)
+    # url: Optional[str] = Field(None)
+    url: Optional[str] = Field(None, max_length=65535)
     citation: Optional[str] = Field(None)
     
-    coord_x: float = Field(..., ge=-180, le=180)
-    coord_y: float = Field(..., ge=-90, le=90)
+    coord_x: float = Field(..., ge=-90, le=90)
+    coord_y: float = Field(..., ge=-180, le=180)
+
     accuracy: RecordAccuracy
     
     crayfish_scientific_name: str = Field(..., min_length=5, max_length=255)

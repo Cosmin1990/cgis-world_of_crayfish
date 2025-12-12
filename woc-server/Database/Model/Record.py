@@ -18,7 +18,7 @@ class Record(Base):
     
     # Navy blue columns
     doi = Column(String(255), nullable=True)
-    url = Column(String(255), nullable=True)
+    url = Column(Text, nullable=True)
     citation = Column(Text, nullable=True)
     
     # Orange columns

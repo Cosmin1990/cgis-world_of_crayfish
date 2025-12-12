@@ -6,7 +6,7 @@ import Species from "../model/Species";
 import Citation from "../model/Citation";
 import Assessment from "../model/Assessment";
 
-import MapComponent from "./HexLayeredMap";
+import MapComponent from "./LayeredMap";
 import GeoLocation from '../model/GeoLocation';
 import PhotoArea from "./PhotoArea";
 
