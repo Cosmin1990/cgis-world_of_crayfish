@@ -49,6 +49,11 @@ function RecordDetails() {
   >();
   const [selectedSpeciesCitation, setSelectedSpeciesCitation] = useState<Citation>();
   const [selectedSpeciesLocations, setSelectedSpeciesLocations] = useState<GeoLocation []>( [] ); 
+  const [confirmedSpeciesDirectory, setConfirmedSpeciesDirectory] = useState<boolean> (false);
+
+  const [AOOObject, setAOOObject] = useState<any>();
+  const [EOOObject, setEOOObject] = useState<any>();
+  const [BasinObject, setBasinObject] = useState<any>();
 
   // ------------------- First effect: record + species + AphiaID -------------------
 
@@ -137,8 +142,61 @@ function RecordDetails() {
         console.error("Error fetching species locations:", error);
       });
 
+    // Confirm the existence of a species directory
+    fetch(`${process.env.REACT_APP_API_BASE_URL}/species/confirmation/` + speciesName)
+       .then((response) => {
+          if (response.status === 201) {
+            setConfirmedSpeciesDirectory(true);
+
+            // Fetch species geolocations geojsons if directory confirmed
+            fetch(`${process.env.REACT_APP_API_BASE_URL}/species/geolocations/` + speciesName)
+              .then((response) => response.json())
+              .then((data) => {
+                // Assume the response has AOO, Basin, EOO geojson strings
+                setAOOObject(data["AOO"]);
+                setBasinObject(data["basins"]);
+                setEOOObject(data["EOO"]);
+                console.log("###############################################################")
+                console.log(data["AOO"])
+                console.log(data)
+              })
+              .catch((error) => {
+                console.error("Error fetching species geolocations geojsons:", error);
+              });  
+
+          } else {
+            setConfirmedSpeciesDirectory(false);
+          }
+          return response.json(); // optional, only if you need the response body
+      })
+      .catch((error) => {
+        console.error("Error confirming species directory:", error);
+        setConfirmedSpeciesDirectory(false);
+      });
+
+      
+
+
+      
 
   }, [speciesName]);
+
+  useEffect(() => {
+  if (!speciesName) return;
+
+  // Reset previous data to force updates
+  setAOOObject(null);
+  setBasinObject(null);
+  setEOOObject(null);
+
+  fetch(`${process.env.REACT_APP_API_BASE_URL}/species/geolocations/${speciesName}`)
+    .then(res => res.json())
+    .then(data => {
+      setAOOObject(data["AOO"]);
+      setBasinObject(data["basins"]);
+      setEOOObject(data["EOO"]);
+    });
+}, [speciesName]);
 
   // ------------------- Second effect: citation + taxonomy + IUCN -------------------
 
@@ -311,6 +369,20 @@ function RecordDetails() {
                   transform: "scaleY(0.99)",
                 }}
               />
+
+              {confirmedSpeciesDirectory && (
+                <div style={{ marginTop: "1em", textAlign: "center" }}>
+                  <a
+                    href={`${process.env.REACT_APP_API_BASE_URL}/species/archive/${speciesName}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "blue", textDecoration: "underline" }}
+                  >
+                    Download Species Archive
+                  </a>
+                </div>
+              )}
+
             </div>
           )}
 
@@ -331,7 +403,7 @@ function RecordDetails() {
 
             <div style={{ flex: "0 0 70%", height: "100%" }}>
               {/* Use real coords from selectedRecord if you have them */}
-              <MapComponent latitude={45.0} longitude={24.15} points={selectedSpeciesLocations} />
+              <MapComponent latitude={45.0} longitude={24.15} points={selectedSpeciesLocations} AOOObject={AOOObject} BasinObject={BasinObject} EOOObject={EOOObject} />
               {/* <MapComponent latitude={23.0} longitude={42.15} points={selectedSpeciesLocations} /> */}
             </div>
           </div>
