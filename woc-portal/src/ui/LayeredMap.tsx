@@ -134,7 +134,7 @@ const MapComponent = React.memo(({ latitude, longitude, points, AOOObject, Basin
           </LayersControl.Overlay>
 
           {/* Basin Layer */}
-          <LayersControl.Overlay checked={false} name="Basin Layer (string)">
+          <LayersControl.Overlay checked={true} name="Basin Layer (string)">
               {/* <GeoJSON  data={BasinObject!}  style={{color: "#00FF00", weight: 2, fillColor: "#00FF00",fillOpacity: 0.2,}}/> */}
               <GeoJSON
                 key={BasinObject ? JSON.stringify(BasinObject) : "empty-Basin"}
