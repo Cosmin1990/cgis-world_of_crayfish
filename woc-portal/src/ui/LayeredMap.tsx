@@ -119,9 +119,9 @@ const MapComponent = React.memo(({ latitude, longitude, points, AOOObject, Basin
 
       <LayersControl position="topright">
           {/* Density Honeycomb */}
-          <LayersControl.Overlay checked={false} name="Density Areas">
+          {/* <LayersControl.Overlay checked={false} name="Density Areas">
               <GeoJSON key={points!.length} data={h3GeoJSON} style={hexStyle} />
-          </LayersControl.Overlay>
+          </LayersControl.Overlay> */}
 
           {/* AOO Layer */}
           <LayersControl.Overlay checked={false} name="AOO Layer (string)">
