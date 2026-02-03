@@ -17,6 +17,18 @@ interface MapComponentProps {
   EOOObject?: any;
 }
 
+// ======================= GeoJSON style from feature.properties =======================
+const geoJsonStyle = (feature?: any): L.PathOptions => {
+  const props = feature?.properties || {};
+
+  return {
+    color: props.stroke || '#3388ff',
+    weight: props['stroke-width'] ?? 1.5,
+    fillColor: props.fill || '#3388ff',
+    fillOpacity: props['fill-opacity'] ?? 0.4,
+  };
+};
+
 // ✅ helper: fits map to any GeoJSON object
 function FitToGeoJSON({ data }: { data?: any }) {
   const map = useMap();
@@ -163,7 +175,7 @@ const MapComponent = React.memo(
               <GeoJSON
                 key={AOOObject ? JSON.stringify(AOOObject) : 'empty-AOO'}
                 data={AOOObject}
-                style={{ color: '#FFFF00', weight: 2, fillColor: '#FFFF00', fillOpacity: 0.2 }}
+                style={geoJsonStyle}
               />
             </LayersControl.Overlay>
 
@@ -172,7 +184,7 @@ const MapComponent = React.memo(
               <GeoJSON
                 key={BasinObject ? JSON.stringify(BasinObject) : 'empty-Basin'}
                 data={BasinObject}
-                style={{ color: '#001effff', weight: 2, fillColor: '#001effff', fillOpacity: 0.2 }}
+                style={geoJsonStyle}
               />
             </LayersControl.Overlay>
 
@@ -181,7 +193,7 @@ const MapComponent = React.memo(
               <GeoJSON
                 key={EOOObject ? JSON.stringify(EOOObject) : 'empty-EOO'}
                 data={EOOObject}
-                style={{ color: '#00FF00', weight: 2, fillColor: '#00FF00', fillOpacity: 0.2 }}
+                style={geoJsonStyle}
               />
             </LayersControl.Overlay>
           </LayersControl>

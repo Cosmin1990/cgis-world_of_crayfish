@@ -99,13 +99,22 @@ def getSpeciesDirectoryZip(speciesName):
     )
     
 
+def normalize_species_name(species_name: str) -> str:
+    name = species_name.strip()
+    name = name.replace(" ", "_").replace("(", "_").replace(")", "_")
+    name = name.lower()
+    return name[0].upper() + name[1:] if name else name
 
 @SpeciesService.route("/species/geolocations/<path:speciesName>", methods=['GET'])
 def getSpeciesGeolocations(speciesName):
 
     # Normalize species name: replace spaces with underscores
-    normalized_name = speciesName.strip().replace(" ", "_")
- 
+    # normalized_name = speciesName.strip().replace(" ", "_")
+
+    # Normalize species name: remove parentheses with underscores
+    # normalized_name = normalized_name.strip().replace("(", "_").replace(")", "_")
+    normalized_name = normalize_species_name(speciesName)
+
     # Build path to DATA_FILES directory under server home
     base_dir = "/home/DATA_FILES" 
     species_dir = os.path.join(base_dir, normalized_name)
