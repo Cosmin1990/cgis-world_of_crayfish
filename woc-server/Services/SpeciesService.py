@@ -143,4 +143,70 @@ def getSpeciesGeolocations(speciesName):
             result[key] = None
 
     return build_response(result, 200)
+
+
+# Define Service endpoint 
+@SpeciesService.route("/species/narrative/<path:speciesName>", methods=['GET'])
+def getSpeciesNarrative(speciesName):
+
+    # Normalize species name: replace spaces with underscores
+    normalized_name = speciesName.strip().replace(" ", "_")
+ 
+    # Build path to DATA_FILES directory under server home
+    base_dir = "/home/DATA_FILES" 
+    species_dir = os.path.join(base_dir, normalized_name)
+
+    if not os.path.isdir(species_dir):
+        return build_response({"error": f"Species directory '{speciesName}' not found"}, 404)
+
+    filename = normalized_name + "_canonical.md"
+    species_description_file = os.path.join(os.path.join(species_dir, "narratives"), filename)
+    # read naratice from "species" file
+    species_narrative = ""
+    with open(species_description_file, "r", encoding="utf-8") as f:
+        species_narrative = f.read()
+    
+    pieces = species_narrative.split("FORMAL NARRATIVE SUMMARY (Human-Readable)")
+    short = ""
+    if len(pieces) > 1:
+        short = pieces[1].strip()
+
+    return build_response({"short": short, "full": species_narrative}, 200)
+
+
+# Define Service endpoint 
+@SpeciesService.route("/species/bibliography/<path:speciesName>/<path:fileType>", methods=['GET'])
+def getSpeciesBibliographyFile(speciesName, fileType):
+
+    # Normalize species name: replace spaces with underscores
+    normalized_name = speciesName.strip().replace(" ", "_")
+ 
+    # Build path to DATA_FILES directory under server home
+    base_dir = "/home/DATA_FILES" 
+    species_dir = os.path.join(base_dir, normalized_name)
+    bib_dir = os.path.join(species_dir, "citations")
+
+    if not os.path.isdir(species_dir):
+        return build_response({"error": f"Species directory '{speciesName}' not found"}, 404)
+
+    if not os.path.isdir(bib_dir):
+        return build_response({"error": f"Bibliography directory not found for species:'{speciesName}'"}, 404)
+    
+
+    fType = fileType.lower().strip()
+    if fType == "json":
+        filePath = os.path.join(bib_dir, normalized_name + "_bibliography.json")
+    elif fType == "csv":
+        filePath = os.path.join(bib_dir, normalized_name + "_bibliography.csv")
+    elif fType == "bib":
+        filePath = os.path.join(bib_dir, normalized_name + "_bibliography.bib")
+    elif fType == "cff":
+        filePath = os.path.join(bib_dir, normalized_name + "_CITATION.cff")
+    else:
+        return build_response({"error": f"Invalid argument for file type:'{fileType}'"}, 404)
         
+    return send_file(
+        filePath,
+        mimetype='application',
+        as_attachment=True,
+    )

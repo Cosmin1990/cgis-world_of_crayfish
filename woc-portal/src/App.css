@@ -124,6 +124,10 @@
   font-weight: bold;
 }
 
+.bib-button{
+  margin-right: 1.0em;
+}
+
 .wallpaper{
   width: 85%;
   height: auto;

@@ -11,6 +11,8 @@ RUN pip install -r requirements.txt
 
 COPY . /home/server/
 
+# COPY ./species_packages /home/DATA_FILES/
+
 
 # ARG DOCKER_USER
 # ENV DOCKER_USER=${DOCKER_USER}

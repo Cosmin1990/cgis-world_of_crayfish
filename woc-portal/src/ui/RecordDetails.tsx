@@ -1,16 +1,22 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm"; 
 import { useParams } from "react-router-dom";
 
 import Record from "../model/Record";
 import Species from "../model/Species";
 import Citation from "../model/Citation";
 import Assessment from "../model/Assessment";
+import Narrative from "../model/Narrative";
 
 import MapComponent from "./LayeredMap";
 import GeoLocation from '../model/GeoLocation';
 import PhotoArea from "./PhotoArea";
 
 import "leaflet/dist/leaflet.css";
+
+import { FiletypeJson } from "react-bootstrap-icons";  // PascalCase component name
+import { FiletypeCsv, Book, FiletypeYml, JournalCheck  } from "react-bootstrap-icons";  // or just use <i> if font-based
 
 
 
@@ -44,9 +50,7 @@ function RecordDetails() {
   const [selectedSpecies, setSelectedSpecies] = useState<Species>();
   const [selectedSpeciesCode, setSelectedSpeciesCode] = useState<number>();
   const [selectedSpeciesTaxonomy, setselectedSpeciesTaxonomy] = useState<string[]>([]);
-  const [selectedSpeciesEndangermentLevel, setselectedSpeciesEndangermentLevel] = useState<
-    string | undefined
-  >();
+  const [selectedSpeciesEndangermentLevel, setselectedSpeciesEndangermentLevel] = useState<string | undefined>();
   const [selectedSpeciesCitation, setSelectedSpeciesCitation] = useState<Citation>();
   const [selectedSpeciesLocations, setSelectedSpeciesLocations] = useState<GeoLocation []>( [] ); 
   const [confirmedSpeciesDirectory, setConfirmedSpeciesDirectory] = useState<boolean> (false);
@@ -54,6 +58,9 @@ function RecordDetails() {
   const [AOOObject, setAOOObject] = useState<any>();
   const [EOOObject, setEOOObject] = useState<any>();
   const [BasinObject, setBasinObject] = useState<any>();
+
+  const [isViewAllOpen, setIsViewAllOpen ] = useState<boolean>(false)
+  const [narrative, setNarrative ] = useState<Narrative>()
 
   // ------------------- First effect: record + species + AphiaID -------------------
 
@@ -176,7 +183,16 @@ function RecordDetails() {
 
       
 
-
+    // Fetch Species Narrative
+    fetch(`${process.env.REACT_APP_API_BASE_URL}/species/narrative/` + speciesName)
+      .then((response) => response.json())
+      .then((data) => {
+        const speciesNarrative: Narrative = data as Narrative;
+        setNarrative(speciesNarrative)
+      })
+      .catch((error) => {
+        console.error("Error fetching species locations:", error);
+      });
       
 
   }, [speciesName]);
@@ -262,12 +278,18 @@ function RecordDetails() {
     }
   }, [selectedSpecies, selectedSpeciesCode, speciesName, selectedSpeciesEndangermentLevel]);
 
+
+  const downloadBibliographyFile = (format: string) => {
+    const url = `${process.env.REACT_APP_API_BASE_URL}/species/bibliography/${speciesName}/${format}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   // ======================= Render =======================
 
   return (
  <div
    className="dashboard right-side"
-   style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", overflow: "visible" }}
+   style={{ display: "flex", flexDirection: "column", width: "100%",  overflow: "visible" }}
  >
       {/* <h1 style={{ marginTop: "0.1em", marginBottom: "0.3em" }}>
         Record details for {speciesName}:
@@ -370,18 +392,22 @@ function RecordDetails() {
                 }}
               />
 
-              {confirmedSpeciesDirectory && (
-                <div style={{ marginTop: "1em", textAlign: "center" }}>
-                  <a
-                    href={`${process.env.REACT_APP_API_BASE_URL}/species/archive/${speciesName}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: "blue", textDecoration: "underline" }}
-                  >
-                    Download Species Archive
-                  </a>
-                </div>
-              )}
+            </div>
+          )}
+
+          {/* ----------- Download Link for species Archive ----------- */}
+          {confirmedSpeciesDirectory && (
+            <div style={{ width: "100%", marginTop: "1em" }}>
+              <div >
+                <a
+                  href={`${process.env.REACT_APP_API_BASE_URL}/species/archive/${speciesName}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "blue", textDecoration: "underline" }}
+                >
+                  Download Species Archive
+                </a>
+              </div>
 
             </div>
           )}
@@ -407,6 +433,77 @@ function RecordDetails() {
               {/* <MapComponent latitude={23.0} longitude={42.15} points={selectedSpeciesLocations} /> */}
             </div>
           </div>
+
+
+          {/* Species Narrative */}
+          <h4 style={{ marginTop: "0.2em", marginBottom: "0.1em", textAlign: "left" }}>
+                Narrative:
+          </h4>
+          <div style={{ marginTop: "1em", width: "100%" }}>
+  
+
+          <div
+            style={{
+              marginTop: "0.5em",
+              width: "100%",
+              height: "180px", // fixed height, not minHeight
+              padding: "0.8em",
+              backgroundColor: "#f9f9f9",
+              borderRadius: "6px",
+              overflowY: "auto", // scroll vertically when content exceeds height
+              fontFamily: "inherit",
+              fontSize: "0.95em",
+            }}
+          >
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {isViewAllOpen ? narrative?.full ?? "" : narrative?.short ?? ""}
+              </ReactMarkdown>
+          </div>
+
+            <br></br>
+              <button
+                onClick={() => setIsViewAllOpen(!isViewAllOpen)}
+                style={{
+                  padding: "0.5em 0.5em",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+            >
+              {isViewAllOpen ? "Hide Details" : "Show Full Description"}
+            </button>
+          </div> 
+
+          {/* Bibliography */}
+          <div>
+              <h4 style={{ marginTop: "0.1em", marginBottom: "0.3em", textAlign: "left" }}>
+                Bibliography:
+              </h4>
+              <button className="btn btn-primary bib-button" 
+                onClick={ () => downloadBibliographyFile("json")}
+              >
+                  <FiletypeJson size={20} /> JSON (.json)
+              </button>
+
+              <button className="btn btn-primary bib-button" 
+                onClick={ () => downloadBibliographyFile("csv")}
+              >
+                  <FiletypeCsv size={20} /> CSV (.csv)
+              </button>
+
+              <button className="btn btn-primary bib-button" 
+                onClick={ () => downloadBibliographyFile("bib")}
+              >
+                  <Book size={20} /> BibTeX (.bib)
+              </button>
+
+              <button className="btn btn-primary bib-button" 
+                onClick={ () => downloadBibliographyFile("cff")}
+              >
+                  <JournalCheck size={20} /> CFF (.cff)
+              </button>
+
+          </div>
+
         </>
       )}
     </div>
