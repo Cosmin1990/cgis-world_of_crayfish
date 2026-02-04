@@ -289,7 +289,16 @@ function RecordDetails() {
   return (
  <div
    className="dashboard right-side"
-   style={{ display: "flex", flexDirection: "column", width: "100%",  overflow: "visible" }}
+  //  style={{ display: "flex", flexDirection: "column", width: "100%",  overflow: "visible" }}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",               // ← crucial: fill parent height
+          width: "100%",
+          overflowY: "auto",            // ← allow scrolling when content overflows
+          padding: "1rem",              // optional – breathing room
+          boxSizing: "border-box",
+        }}
  >
       {/* <h1 style={{ marginTop: "0.1em", marginBottom: "0.3em" }}>
         Record details for {speciesName}:
@@ -414,14 +423,23 @@ function RecordDetails() {
 
           {/* ----------- Photos + Map ----------- */}
           <div
+            // style={{
+            //   display: "flex",
+            //   width: "100%",
+            //   height: "70vh",
+            //   gap: "1em",
+            //   marginTop: "1em",
+            //   alignItems: "stretch",
+            // }}
             style={{
-              display: "flex",
-              width: "100%",
-              height: "70vh",
-              gap: "1em",
-              marginTop: "1em",
-              alignItems: "stretch",
-            }}
+    display: "flex",
+    width: "100%",
+    height: "70vh",               // ← fixed – won't change
+    minHeight: "500px",           // optional: prevent it from becoming too small on small screens
+    gap: "1em",
+    marginTop: "1em",
+    flexShrink: 0,                // ← important: don't let it shrink
+  }}
           >
             <div style={{ flex: "0 0 30%", maxHeight: "100%", overflowY: "auto" }}>
               <PhotoArea />
@@ -436,24 +454,32 @@ function RecordDetails() {
 
 
           {/* Species Narrative */}
-          <h4 style={{ marginTop: "0.2em", marginBottom: "0.1em", textAlign: "left" }}>
+          <h4 style={{ marginTop: "0.5em", marginBottom: "0.5em", textAlign: "left" }}>
                 Narrative:
           </h4>
           <div style={{ marginTop: "1em", width: "100%" }}>
   
 
           <div
+            // style={{
+            //   marginTop: "0.5em",
+            //   width: "100%",
+            //   height: "180px", // fixed height, not minHeight
+            //   padding: "0.8em",
+            //   backgroundColor: "#f9f9f9",
+            //   borderRadius: "6px",
+            //   overflowY: "auto", // scroll vertically when content exceeds height
+            //   fontFamily: "inherit",
+            //   fontSize: "0.95em",
+            // }}
             style={{
-              marginTop: "0.5em",
-              width: "100%",
-              height: "180px", // fixed height, not minHeight
-              padding: "0.8em",
-              backgroundColor: "#f9f9f9",
-              borderRadius: "6px",
-              overflowY: "auto", // scroll vertically when content exceeds height
-              fontFamily: "inherit",
-              fontSize: "0.95em",
-            }}
+            padding: "1em",
+            backgroundColor: "#f9f9f9",
+            borderRadius: "6px",
+            maxHeight: "600px",             // ← optional cap – or remove for unlimited growth
+            overflowY: "auto",
+            fontSize: "0.95em",
+    }}
           >
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {isViewAllOpen ? narrative?.full ?? "" : narrative?.short ?? ""}
