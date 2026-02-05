@@ -49,26 +49,26 @@ services:
     command: ["python", "ServerApp.py", "init_db"]
 
 
-  # portal:
-  #   build:
-  #     context: ./woc-portal
-  #     args:
-  #       REACT_APP_PUBLIC_URL: "${PUBLIC_URL}"
-  #       PUBLIC_URL: "${PUBLIC_URL}"
-  #       REACT_APP_API_ROOT: "${API_ROOT}"
-  #       REACT_APP_API_BASE_URL: "${REACT_APP_API_BASE_URL}"
-  #     dockerfile: Dockerfile
-  #   container_name: woc-portal
-  #   ports:
-  #     - "3310:3000"
-  #   volumes:
-  #     - ./woc-portal:/app
-  #     - /app/node_modules
-  #   restart: always
-  #   depends_on:
-  #     - server
-  #   networks:
-  #     - vn2
+  portal:
+    build:
+      context: ./woc-portal
+      args:
+        REACT_APP_PUBLIC_URL: "${PUBLIC_URL}"
+        PUBLIC_URL: "${PUBLIC_URL}"
+        REACT_APP_API_ROOT: "${API_ROOT}"
+        REACT_APP_API_BASE_URL: "${REACT_APP_API_BASE_URL}"
+      dockerfile: Dockerfile
+    container_name: woc-portal
+    ports:
+      - "3310:3000"
+    volumes:
+      - ./woc-portal:/app
+      - /app/node_modules
+    restart: always
+    depends_on:
+      - server
+    networks:
+      - vn2
 
   nginx:
     image: nginx:latest

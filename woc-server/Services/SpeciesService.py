@@ -14,6 +14,12 @@ from Services.Support import *
 SpeciesService = Blueprint('SpeciesService', __name__)
 
 
+def normalize_species_name(species_name: str) -> str:
+    name = species_name.strip()
+    name = name.replace(" ", "_").replace("(", "_").replace(")", "_")
+    name = name.lower()
+    return name[0].upper() + name[1:] if name else name
+
 
 # Define Service endpoint 
 @SpeciesService.route("/species/new", methods=['POST'])
@@ -55,7 +61,8 @@ def getSpeciesByName(speciesName):
 def getSpeciesDirectoryAvailability(speciesName):
 
     # Normalize species name: replace spaces with underscores
-    normalized_name = speciesName.strip().replace(" ", "_")
+    # normalized_name = speciesName.strip().replace(" ", "_")
+    normalized_name = normalize_species_name(speciesName)
  
     # Build path to DATA_FILES directory under server home
     base_dir = "/home/DATA_FILES" 
@@ -73,7 +80,8 @@ def getSpeciesDirectoryAvailability(speciesName):
 def getSpeciesDirectoryZip(speciesName):
 
     # Normalize species name: replace spaces with underscores
-    normalized_name = speciesName.strip().replace(" ", "_")
+    # normalized_name = speciesName.strip().replace(" ", "_")
+    normalized_name = normalize_species_name(speciesName)
  
     # Build path to DATA_FILES directory under server home
     base_dir = "/home/DATA_FILES" 
@@ -97,13 +105,6 @@ def getSpeciesDirectoryZip(speciesName):
         as_attachment=True,
         download_name=f"{normalized_name}.zip"
     )
-    
-
-def normalize_species_name(species_name: str) -> str:
-    name = species_name.strip()
-    name = name.replace(" ", "_").replace("(", "_").replace(")", "_")
-    name = name.lower()
-    return name[0].upper() + name[1:] if name else name
 
 @SpeciesService.route("/species/geolocations/<path:speciesName>", methods=['GET'])
 def getSpeciesGeolocations(speciesName):
@@ -111,8 +112,6 @@ def getSpeciesGeolocations(speciesName):
     # Normalize species name: replace spaces with underscores
     # normalized_name = speciesName.strip().replace(" ", "_")
 
-    # Normalize species name: remove parentheses with underscores
-    # normalized_name = normalized_name.strip().replace("(", "_").replace(")", "_")
     normalized_name = normalize_species_name(speciesName)
 
     # Build path to DATA_FILES directory under server home
@@ -150,7 +149,8 @@ def getSpeciesGeolocations(speciesName):
 def getSpeciesNarrative(speciesName):
 
     # Normalize species name: replace spaces with underscores
-    normalized_name = speciesName.strip().replace(" ", "_")
+    # normalized_name = speciesName.strip().replace(" ", "_")
+    normalized_name = normalize_species_name(speciesName)
  
     # Build path to DATA_FILES directory under server home
     base_dir = "/home/DATA_FILES" 
@@ -179,7 +179,8 @@ def getSpeciesNarrative(speciesName):
 def getSpeciesBibliographyFile(speciesName, fileType):
 
     # Normalize species name: replace spaces with underscores
-    normalized_name = speciesName.strip().replace(" ", "_")
+    # normalized_name = speciesName.strip().replace(" ", "_")
+    normalized_name = normalize_species_name(speciesName)
  
     # Build path to DATA_FILES directory under server home
     base_dir = "/home/DATA_FILES" 

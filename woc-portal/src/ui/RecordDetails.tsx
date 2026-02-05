@@ -479,6 +479,7 @@ function RecordDetails() {
             maxHeight: "600px",             // ← optional cap – or remove for unlimited growth
             overflowY: "auto",
             fontSize: "0.95em",
+            textAlign: "left",
     }}
           >
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
