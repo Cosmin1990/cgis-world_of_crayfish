@@ -1,0 +1,129 @@
+.record-page {
+  padding: 1.5rem;
+  max-width: 100%;
+  margin: auto;
+  font-family: Inter, system-ui, sans-serif;
+  background: transparent;
+}
+
+.card {
+  background: white;
+  border-radius: 14px;
+  padding: 1.25rem;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+  margin-bottom: 1.5rem;
+  text-align: left;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 🔑 CRUCIAL */
+.media-grid {
+  display: grid;
+  grid-template-columns: 30% 70%;
+  gap: 1rem;
+  height: 70vh;
+  min-height: 500px;
+  margin-bottom: 1.5rem;
+}
+
+.media-panel {
+  height: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.12);
+}
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+}
+
+/* UI */
+
+.taxonomy-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.taxonomy-chip {
+  background: #eef2ff;
+  color: #3730a3;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+}
+
+.narrative {
+  //max-height: 160px;
+  //overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.narrative.open {
+  max-height: none;
+}
+
+.btn-modern {
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 0.45rem 0.8rem;
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  line-height: 1;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid #2563eb;
+  color: #2563eb;
+  border-radius: 8px;
+  padding: 0.3rem 0.6rem;
+}
+
+.button-row {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.iucn-badge {
+  display: block;
+  width: 100%;
+  max-width: none; 
+  height: auto;
+
+  margin: 0.75rem auto 1rem auto;
+
+  object-fit: contain;
+
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.taxonomy-actions {
+  margin-top: 1rem;   /* 👈 mută butonul mai jos */
+}
+
+.species-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.external-icon {
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.external-icon:hover {
+  color: #1e40af;
+  transform: translateY(-1px);
+}

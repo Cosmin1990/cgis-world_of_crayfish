@@ -1,7 +1,13 @@
 // ======================= MapComponent =======================
 
 import React, { useMemo, useEffect } from 'react';
-import { MapContainer, TileLayer, GeoJSON, LayersControl, useMap } from 'react-leaflet';
+import {
+  MapContainer,
+  TileLayer,
+  GeoJSON,
+  LayersControl,
+  useMap,
+} from 'react-leaflet';
 import L from 'leaflet';
 import { latLngToCell, cellToBoundary } from 'h3-js';
 import 'leaflet/dist/leaflet.css';
@@ -17,10 +23,35 @@ interface MapComponentProps {
   EOOObject?: any;
 }
 
-// ======================= GeoJSON style from feature.properties =======================
+/* ======================= HELPERS ======================= */
+
+// 🔑 parse GeoJSON OR KML string safely
+function normalizeGeoData(input?: any) {
+  if (!input) return undefined;
+
+  if (typeof input === 'string') {
+    try {
+      // JSON GeoJSON
+      return JSON.parse(input);
+    } catch {
+      try {
+        // KML
+        const doc = new DOMParser().parseFromString(input, 'text/xml');
+        return toGeoJSON.kml(doc);
+      } catch (e) {
+        console.error('Invalid geo data:', e);
+        return undefined;
+      }
+    }
+  }
+
+  // already object
+  return input;
+}
+
+// ======================= GeoJSON style =======================
 const geoJsonStyle = (feature?: any): L.PathOptions => {
   const props = feature?.properties || {};
-
   return {
     color: props.stroke || '#3388ff',
     weight: props['stroke-width'] ?? 1.5,
@@ -29,7 +60,7 @@ const geoJsonStyle = (feature?: any): L.PathOptions => {
   };
 };
 
-// ✅ helper: fits map to any GeoJSON object
+// ======================= FIT MAP =======================
 function FitToGeoJSON({ data }: { data?: any }) {
   const map = useMap();
 
@@ -40,165 +71,87 @@ function FitToGeoJSON({ data }: { data?: any }) {
     const bounds = layer.getBounds();
 
     if (bounds.isValid()) {
-      map.fitBounds(bounds, {
-        padding: [30, 30],
-        animate: true,
-      });
+      map.fitBounds(bounds, { padding: [30, 30] });
     }
   }, [data, map]);
 
   return null;
 }
 
+// ======================= INVALIDATE SIZE =======================
+function InvalidateSize() {
+  const map = useMap();
+
+  useEffect(() => {
+    const t = setTimeout(() => map.invalidateSize(), 300);
+    return () => clearTimeout(t);
+  }, [map]);
+
+  return null;
+}
+
+/* ======================= COMPONENT ======================= */
+
 const MapComponent = React.memo(
-  ({ latitude, longitude, points, AOOObject, BasinObject, EOOObject }: MapComponentProps) => {
-    //=================================== GeoJSON polygonal layer ============================================================
-    // Convert a GeoJSON string into an object
-    function parseGeoJsonString(geojsonString: string) {
-      try {
-        return JSON.parse(geojsonString);
-      } catch (e) {
-        console.error('Invalid GeoJSON string', e);
-        return null;
-      }
-    }
+  ({ points, AOOObject, BasinObject, EOOObject }: MapComponentProps) => {
 
-    // Convert a KML string into GeoJSON
-    function parseKmlString(kmlString: string) {
-      try {
-        const doc = new DOMParser().parseFromString(kmlString, 'text/xml');
-        return toGeoJSON.kml(doc);
-      } catch (e) {
-        console.error('Invalid KML string', e);
-        return null;
-      }
-    }
+    // 🔑 NORMALIZE DATA HERE
+    const AOO = useMemo(() => normalizeGeoData(AOOObject), [AOOObject]);
+    const Basin = useMemo(() => normalizeGeoData(BasinObject), [BasinObject]);
+    const EOO = useMemo(() => normalizeGeoData(EOOObject), [EOOObject]);
 
-    //========================================================================================================================
-
-    // ================================== DENSITY HONEYCOMB ==================================================================
-    // H3 fixed hexagonal grid binning
-    const h3GeoJSON = useMemo(() => {
-      const resolution = 3; // Adjust: 6=larger hexes, 8=smaller/finer
-      const hexCounts = new Map<string, number>();
-
-      (Array.isArray(points) ? points : []).forEach((p) => {
-        const lat = p.latitude;
-        const lng = p.longitude;
-        const index = latLngToCell(lat, lng, resolution);
-        hexCounts.set(index, (hexCounts.get(index) || 0) + 1);
-      });
-
-      const features = Array.from(hexCounts.entries()).map(([index, count]) => {
-        const rawBoundary = cellToBoundary(index, true); // returns [lat, lng] in practice here
-        const boundary = rawBoundary.map(([a, b]) => [b, a]); // force swap to [lng, lat]
-
-        return {
-          type: 'Feature' as const,
-          geometry: {
-            type: 'Polygon' as const,
-            coordinates: [boundary],
-          },
-          properties: { density: count },
-        };
-      });
-
-      return {
-        type: 'FeatureCollection' as const,
-        features,
-      };
-    }, [points]);
-
-    // Style function for density coloring
-    const hexStyle: L.PathOptions | ((feature?: GeoJSON.Feature) => L.PathOptions) = (
-      feature?: GeoJSON.Feature
-    ) => {
-      const density = (feature?.properties as { density?: number } | undefined)?.density ?? 0;
-
-      const fillColor =
-        density > 300
-          ? '#7f0000'
-          : density > 250
-          ? '#990000'
-          : density > 200
-          ? '#b30000'
-          : density > 150
-          ? '#cc0000'
-          : density > 100
-          ? '#e60000'
-          : density > 50
-          ? '#ff3300'
-          : density > 20
-          ? '#ff6600'
-          : density > 10
-          ? '#ff9933'
-          : density > 5
-          ? '#ffcc80'
-          : '#f2fccaff';
-
-      return {
-        fillColor,
-        weight: 1,
-        opacity: 1,
-        color: 'white',
-        fillOpacity: 0.7,
-      };
-    };
-    //========================================================================================================================
-
-    // ✅ choose what to fit to (Basin first, then AOO, then EOO)
-    const fitTarget = BasinObject || AOOObject || EOOObject;
+    // Fit priority
+    const fitTarget = Basin || AOO || EOO;
 
     return (
       <>
-        <style>{`.leaflet-control-layers label {text-align: left !important;}`}</style>
+        <style>{`.leaflet-control-layers label { text-align: left !important; }`}</style>
 
         <MapContainer
-          center={[45.0, 24.65] as L.LatLngExpression}
+          center={[45.0, 24.65]}
           zoom={6}
           style={{ height: '100%', width: '100%' }}
         >
-          {/* MAP */}
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution="&copy; OpenStreetMap contributors"
           />
 
           <LayersControl position="topright">
-            {/* Density Honeycomb */}
-            {/* <LayersControl.Overlay checked={false} name="Density Areas">
-              <GeoJSON key={points?.length ?? 0} data={h3GeoJSON} style={hexStyle} />
-            </LayersControl.Overlay> */}
 
-            {/* AOO Layer */}
-            <LayersControl.Overlay checked={false} name="AOO Layer (string)">
-              <GeoJSON
-                key={AOOObject ? JSON.stringify(AOOObject) : 'empty-AOO'}
-                data={AOOObject}
-                style={geoJsonStyle}
-              />
-            </LayersControl.Overlay>
+            {AOO && (
+              <LayersControl.Overlay checked={false} name="AOO">
+  <GeoJSON
+    key={AOO ? JSON.stringify(AOO).length : "AOO-empty"}
+    data={AOO}
+    style={geoJsonStyle}
+  />
+</LayersControl.Overlay>
+            )}
 
-            {/* Basin Layer */}
-            <LayersControl.Overlay checked={true} name="Basin Layer (string)">
-              <GeoJSON
-                key={BasinObject ? JSON.stringify(BasinObject) : 'empty-Basin'}
-                data={BasinObject}
-                style={geoJsonStyle}
-              />
-            </LayersControl.Overlay>
+            {Basin && (
+              <LayersControl.Overlay checked name="Basins">
+  <GeoJSON
+    key={Basin ? JSON.stringify(Basin).length : "Basin-empty"}
+    data={Basin}
+    style={geoJsonStyle}
+  />
+</LayersControl.Overlay>
+            )}
 
-            {/* EOO Layer */}
-            <LayersControl.Overlay checked={false} name="EOO Layer (string)">
-              <GeoJSON
-                key={EOOObject ? JSON.stringify(EOOObject) : 'empty-EOO'}
-                data={EOOObject}
-                style={geoJsonStyle}
-              />
-            </LayersControl.Overlay>
+            {EOO && (
+              <LayersControl.Overlay checked={false} name="EOO">
+  <GeoJSON
+    key={EOO ? JSON.stringify(EOO).length : "EOO-empty"}
+    data={EOO}
+    style={geoJsonStyle}
+  />
+</LayersControl.Overlay>
+            )}
+
           </LayersControl>
 
-          {/* ✅ Auto-center map around your data */}
+          <InvalidateSize />
           <FitToGeoJSON data={fitTarget} />
         </MapContainer>
       </>

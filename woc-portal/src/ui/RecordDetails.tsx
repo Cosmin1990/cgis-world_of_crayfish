@@ -18,7 +18,8 @@ import "leaflet/dist/leaflet.css";
 import { FiletypeJson } from "react-bootstrap-icons";  // PascalCase component name
 import { FiletypeCsv, Book, FiletypeYml, JournalCheck  } from "react-bootstrap-icons";  // or just use <i> if font-based
 
-
+import "./RecordDetails.css";
+import { BoxArrowUpRight } from "react-bootstrap-icons";
 
 // ======================= Helper: taxonomy names =======================
 
@@ -38,6 +39,7 @@ function extractScientificNames(node: any): string[] {
   traverse(node);
   return names;
 }
+
 
 // ======================= Main Component =======================
 
@@ -61,6 +63,26 @@ function RecordDetails() {
 
   const [isViewAllOpen, setIsViewAllOpen ] = useState<boolean>(false)
   const [narrative, setNarrative ] = useState<Narrative>()
+
+  const [copied, setCopied] = useState(false);
+
+  const copyTaxonomy = async () => {
+    const text = selectedSpeciesTaxonomy.join(", ");
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   // ------------------- First effect: record + species + AphiaID -------------------
 
@@ -287,22 +309,7 @@ function RecordDetails() {
   // ======================= Render =======================
 
   return (
- <div
-   className="dashboard right-side"
-  //  style={{ display: "flex", flexDirection: "column", width: "100%",  overflow: "visible" }}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          height: "100%",               // ← crucial: fill parent height
-          width: "100%",
-          overflowY: "auto",            // ← allow scrolling when content overflows
-          padding: "1rem",              // optional – breathing room
-          boxSizing: "border-box",
-        }}
- >
-      {/* <h1 style={{ marginTop: "0.1em", marginBottom: "0.3em" }}>
-        Record details for {speciesName}:
-      </h1> */}
+ <div className="record-page dashboard right-side">
 
       {selectedRecord && (
         <>
@@ -311,225 +318,146 @@ function RecordDetails() {
 
           {/* ----------- Citation / Reference block (depends on citation only) ----------- */}
           {selectedSpeciesCitation && (
-            <>
-              <h2 style={{ marginTop: "0.1em", marginBottom: "0.3em", textAlign: "left" }}>
-                {speciesName}
-              </h2>
-              <h3 style={{ marginTop: "0.1em", marginBottom: "0.3em", textAlign: "left" }}>
-                {selectedSpeciesCitation.reference}
-              </h3>
-              <h3 style={{ marginTop: "0.1em", marginBottom: "0.3em" }}>
-                <a
-                  href={selectedSpeciesCitation.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {selectedSpeciesCitation.url}
-                </a>
-              </h3>
-              <h3 style={{ marginTop: "0.1em", marginBottom: "0.3em", textAlign: "left" }}>
-                {selectedSpeciesCitation.doi}
-              </h3>
-            </>
+            <header className="card">
+                <h1 className="species-title">
+                  {speciesName}
+
+                  <a
+                    href={selectedSpeciesCitation.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="external-icon"
+                    aria-label="View on WoRMS"
+                    title="View on WoRMS"
+                  >
+                    <BoxArrowUpRight size={20} />
+                  </a>
+                </h1>
+
+                <p className="subtitle">
+                  {selectedSpeciesCitation.reference}
+                </p>
+
+                <p className="subtitle">
+                  {selectedSpeciesCitation.doi}
+                </p>
+              </header>
           )}
 
           {/* ----------- Taxonomy block (independent of citation) ----------- */}
           {selectedSpeciesTaxonomy.length > 0 && (
-            <div
-              style={{
-                backgroundColor: "lightgreen",
-                padding: "1em",
-                borderRadius: "8px",
-                marginTop: "1em",
-                width: "99%",
-              }}
-            >
-              <ul
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "0.5em",
-                  listStyleType: "disc",
-                  paddingLeft: "1.5em",
-                  margin: 0,
-                }}
-              >
-                {selectedSpeciesTaxonomy.map((name, index) => (
-                  <li key={index} style={{ marginRight: "1em" }}>
-                    {name}
-                  </li>
-                ))}
-              </ul>
-              <div style={{ marginTop: "0.5em" }}>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigator.clipboard.writeText(selectedSpeciesTaxonomy.join(", "));
-                  }}
-                  style={{
-                    color: "blue",
-                    textDecoration: "underline",
-                    cursor: "pointer",
-                  }}
-                >
-                  Copy taxonomy
-                </a>
-              </div>
-            </div>
-          )}
+              <section className="card">
+                <h2>Taxonomy</h2>
+
+                <div className="taxonomy-list">
+                  {selectedSpeciesTaxonomy.map((name, i) => (
+                    <span key={i} className="taxonomy-chip">
+                      {name}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="taxonomy-actions">
+                  <button className="btn-outline" onClick={copyTaxonomy}>
+                  {copied ? "Copied ✔" : "Copy taxonomy"}
+                </button>
+
+                </div>
+
+              </section>
+            )}
 
           {/* ----------- IUCN endangerment block (independent as well) ----------- */}
           {selectedSpeciesEndangermentLevel && (
-            <div style={{ width: "100%", marginTop: "1em" }}>
-              <div className="acknowledgement">
-                API calls powered by: IUCN 2025. IUCN Red List of Threatened Species. Version
-                2025-2 &lt;www.iucnredlist.org&gt;
-              </div>
-              <img
-                src={
-                  process.env.REACT_APP_PUBLIC_URL +
-                  `/levels/${selectedSpeciesEndangermentLevel}.svg`
-                }
-                alt="Endangerment Level"
-                style={{
-                  width: "70%",
-                  height: "auto",
-                  display: "block",
-                  margin: "0 auto",
-                  transform: "scaleY(0.99)",
-                }}
-              />
+  <section className="card">
+    <h2>Conservation status</h2>
 
-            </div>
-          )}
+    <img
+      className="iucn-badge"
+      src={`${process.env.REACT_APP_PUBLIC_URL}/levels/${selectedSpeciesEndangermentLevel}.svg`}
+      alt="IUCN"
+    />
 
-          {/* ----------- Download Link for species Archive ----------- */}
-          {confirmedSpeciesDirectory && (
-            <div style={{ width: "100%", marginTop: "1em" }}>
-              <div >
-                <a
-                  href={`${process.env.REACT_APP_API_BASE_URL}/species/archive/${speciesName}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: "blue", textDecoration: "underline" }}
-                >
-                  Download Species Archive
-                </a>
-              </div>
-
-            </div>
-          )}
+    <p className="acknowledgement">
+      API calls powered by: IUCN Red List of Threatened Species (2025)
+    </p>
+  </section>
+)}
 
           {/* ----------- Photos + Map ----------- */}
-          <div
-            // style={{
-            //   display: "flex",
-            //   width: "100%",
-            //   height: "70vh",
-            //   gap: "1em",
-            //   marginTop: "1em",
-            //   alignItems: "stretch",
-            // }}
-            style={{
-    display: "flex",
-    width: "100%",
-    height: "70vh",               // ← fixed – won't change
-    minHeight: "500px",           // optional: prevent it from becoming too small on small screens
-    gap: "1em",
-    marginTop: "1em",
-    flexShrink: 0,                // ← important: don't let it shrink
-  }}
-          >
-            <div style={{ flex: "0 0 30%", maxHeight: "100%", overflowY: "auto" }}>
-              <PhotoArea />
-            </div>
+          <section className="media-grid">
+  <div className="media-panel">
+    <PhotoArea />
+  </div>
 
-            <div style={{ flex: "0 0 70%", height: "100%" }}>
-              {/* Use real coords from selectedRecord if you have them */}
-              <MapComponent latitude={45.0} longitude={24.15} points={selectedSpeciesLocations} AOOObject={AOOObject} BasinObject={BasinObject} EOOObject={EOOObject} />
-              {/* <MapComponent latitude={23.0} longitude={42.15} points={selectedSpeciesLocations} /> */}
-            </div>
-          </div>
+  <div className="media-panel">
+    <MapComponent
+      points={selectedSpeciesLocations}
+      AOOObject={AOOObject}
+      BasinObject={BasinObject}
+      EOOObject={EOOObject}
+    />
+  </div>
+</section>
 
 
           {/* Species Narrative */}
-          <h4 style={{ marginTop: "0.5em", marginBottom: "0.5em", textAlign: "left" }}>
-                Narrative:
-          </h4>
-          <div style={{ marginTop: "1em", width: "100%" }}>
-  
+          {narrative && (
+  <section className="card">
+    <h2>Narrative</h2>
 
-          <div
-            // style={{
-            //   marginTop: "0.5em",
-            //   width: "100%",
-            //   height: "180px", // fixed height, not minHeight
-            //   padding: "0.8em",
-            //   backgroundColor: "#f9f9f9",
-            //   borderRadius: "6px",
-            //   overflowY: "auto", // scroll vertically when content exceeds height
-            //   fontFamily: "inherit",
-            //   fontSize: "0.95em",
-            // }}
-            style={{
-            padding: "1em",
-            backgroundColor: "#f9f9f9",
-            borderRadius: "6px",
-            maxHeight: "600px",             // ← optional cap – or remove for unlimited growth
-            overflowY: "auto",
-            fontSize: "0.95em",
-            textAlign: "left",
-    }}
-          >
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {isViewAllOpen ? narrative?.full ?? "" : narrative?.short ?? ""}
-              </ReactMarkdown>
-          </div>
+    <div className={`narrative ${isViewAllOpen ? "open" : ""}`}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+        {isViewAllOpen ? narrative.full : narrative.short}
+      </ReactMarkdown>
+    </div>
 
-            <br></br>
-              <button
-                onClick={() => setIsViewAllOpen(!isViewAllOpen)}
-                style={{
-                  padding: "0.5em 0.5em",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                }}
-            >
-              {isViewAllOpen ? "Hide Details" : "Show Full Description"}
-            </button>
-          </div> 
+    <button
+      className="btn-modern"
+      onClick={() => setIsViewAllOpen(!isViewAllOpen)}
+    >
+      {isViewAllOpen ? "Hide details" : "Read full description"}
+    </button>
+  </section>
+)}
 
           {/* Bibliography */}
-          <div>
-              <h4 style={{ marginTop: "0.1em", marginBottom: "0.3em", textAlign: "left" }}>
-                Bibliography:
-              </h4>
-              <button className="btn btn-primary bib-button" 
-                onClick={ () => downloadBibliographyFile("json")}
-              >
-                  <FiletypeJson size={20} /> JSON (.json)
-              </button>
+          <section className="card">
+  <h2>Bibliography</h2>
 
-              <button className="btn btn-primary bib-button" 
-                onClick={ () => downloadBibliographyFile("csv")}
-              >
-                  <FiletypeCsv size={20} /> CSV (.csv)
-              </button>
+  <div className="button-row">
+    <button className="btn-modern" onClick={() => downloadBibliographyFile("json")}>
+      <FiletypeJson /> JSON
+    </button>
 
-              <button className="btn btn-primary bib-button" 
-                onClick={ () => downloadBibliographyFile("bib")}
-              >
-                  <Book size={20} /> BibTeX (.bib)
-              </button>
+    <button className="btn-modern" onClick={() => downloadBibliographyFile("csv")}>
+      <FiletypeCsv /> CSV
+    </button>
 
-              <button className="btn btn-primary bib-button" 
-                onClick={ () => downloadBibliographyFile("cff")}
-              >
-                  <JournalCheck size={20} /> CFF (.cff)
-              </button>
+    <button className="btn-modern" onClick={() => downloadBibliographyFile("bib")}>
+      <Book /> BibTeX
+    </button>
 
-          </div>
+    <button className="btn-modern" onClick={() => downloadBibliographyFile("cff")}>
+      <JournalCheck /> CFF
+    </button>
+  </div>
+</section>
+
+        {confirmedSpeciesDirectory && (
+  <section className="card">
+    <h2>Species archive</h2>
+
+    <a
+      className="btn-modern"
+      href={`${process.env.REACT_APP_API_BASE_URL}/species/archive/${speciesName}`}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Download archive
+    </a>
+  </section>
+)}
 
         </>
       )}
