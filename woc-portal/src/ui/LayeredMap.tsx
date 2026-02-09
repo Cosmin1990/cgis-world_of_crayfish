@@ -90,6 +90,37 @@ function InvalidateSize() {
   return null;
 }
 
+
+function CtrlScrollZoom() {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) {
+        // 🔒 blocăm scroll-ul paginii
+        e.preventDefault();
+        e.stopPropagation();
+
+        // ✅ activăm zoom pe hartă
+        map.scrollWheelZoom.enable();
+      } else {
+        map.scrollWheelZoom.disable();
+      }
+    };
+
+    container.addEventListener("wheel", onWheel, { passive: false });
+
+    return () => {
+      container.removeEventListener("wheel", onWheel);
+    };
+  }, [map]);
+
+  return null;
+}
+
+
 /* ======================= COMPONENT ======================= */
 
 const MapComponent = React.memo(
@@ -110,6 +141,7 @@ const MapComponent = React.memo(
         <MapContainer
           center={[45.0, 24.65]}
           zoom={6}
+          scrollWheelZoom={false}
           style={{ height: '100%', width: '100%' }}
         >
           <TileLayer
@@ -153,6 +185,7 @@ const MapComponent = React.memo(
 
           <InvalidateSize />
           <FitToGeoJSON data={fitTarget} />
+          <CtrlScrollZoom />
         </MapContainer>
       </>
     );
