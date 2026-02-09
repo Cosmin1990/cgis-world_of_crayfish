@@ -385,19 +385,29 @@ function RecordDetails() {
 )}
 
           {/* ----------- Photos + Map ----------- */}
-          <section className="media-grid">
-  <div className="media-panel">
+           {/* <section className="media-grid"> */}
+  {/* <div className="media-panel">
     <PhotoArea />
-  </div>
+  </div> */}
 
-  <div className="media-panel">
+  {/* <div className="media-panel">
     <MapComponent
       points={selectedSpeciesLocations}
       AOOObject={AOOObject}
       BasinObject={BasinObject}
       EOOObject={EOOObject}
     />
-  </div>
+  </div> */}
+{/* </section> */}
+
+
+        <section className="map-only">
+  <MapComponent
+    points={selectedSpeciesLocations}
+    AOOObject={AOOObject}
+    BasinObject={BasinObject}
+    EOOObject={EOOObject}
+  />
 </section>
 
 
