@@ -329,11 +329,8 @@ def getSpeciesGeolocationsFile(speciesName, geoType):
         with open(filePath, "r", encoding="utf-8") as f:
             geojson_data = json.load(f)
 
-        #return build_response({"geolocations": geojson_data}, 200)
-        #return jsonify(geojson_data)
-        pretty = json.dumps(geojson_data, ensure_ascii=False, indent=2)
-        return Response(pretty + "\n", mimetype="text/plain; charset=utf-8")
-
+        return build_response({"geolocations": geojson_data}, 200)
+        
     # 🔹 DEFAULT → download (comportament vechi)
     return send_file(
         filePath,
