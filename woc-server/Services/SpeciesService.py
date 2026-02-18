@@ -5,6 +5,7 @@ import os
 import shutil
 import csv
 from pydantic import ValidationError
+from urllib.parse import quote
 
 from Database.DBConnection import db
 from Database.Model.Species import Species
@@ -228,10 +229,11 @@ def getMetadata(speciesName):
     resources = []
 
     server_url = "https://cgisdev.utcluj.ro/woc/api"
+    encodedSpeciesName = quote(speciesName)
 
     resources.append({
         "name": f"Narrative",
-        "path": server_url + "/species/narrative/" + speciesName,
+        "path": server_url + "/species/narrative/" + encodedSpeciesName,
         "format": "md"
     })
 
@@ -239,7 +241,7 @@ def getMetadata(speciesName):
     for geoType in geolocation_types:
         resources.append({
             "name": f"Geolocations ({geoType})",
-            "path": server_url + "/species/geolocations/" + speciesName + "/" + geoType + "?mode=inline",
+            "path": server_url + "/species/geolocations/" + encodedSpeciesName + "/" + geoType + "?mode=inline",
             "format": "geojson"
         })
 
@@ -248,7 +250,7 @@ def getMetadata(speciesName):
     for fmt in bibliography_formats:
         resources.append({
             "name": f"Bibliography ({fmt})",
-            "path": server_url + "/species/bibliography/" + speciesName + "/" + fmt + "?mode=inline",
+            "path": server_url + "/species/bibliography/" + encodedSpeciesName + "/" + fmt + "?mode=inline",
             "format": fmt
         })
 
@@ -327,7 +329,7 @@ def getSpeciesGeolocationsFile(speciesName, geoType):
         with open(filePath, "r", encoding="utf-8") as f:
             geojson_data = json.load(f)
 
-        return build_response(geojson_data, 200)
+        return build_response({"geolocations": geojson_data}, 200)
 
     # 🔹 DEFAULT → download (comportament vechi)
     return send_file(
