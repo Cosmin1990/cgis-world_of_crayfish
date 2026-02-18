@@ -1,4 +1,4 @@
-from flask import Blueprint, request, Response, send_file, after_this_request
+from flask import Blueprint, request, Response, send_file, after_this_request, jsonify
 from flask import url_for
 import json
 import os
@@ -329,7 +329,8 @@ def getSpeciesGeolocationsFile(speciesName, geoType):
         with open(filePath, "r", encoding="utf-8") as f:
             geojson_data = json.load(f)
 
-        return build_response({"geolocations": geojson_data}, 200)
+        #return build_response({"geolocations": geojson_data}, 200)
+        return jsonify(geojson_data)
 
     # 🔹 DEFAULT → download (comportament vechi)
     return send_file(
