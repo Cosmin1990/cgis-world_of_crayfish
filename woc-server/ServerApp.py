@@ -21,6 +21,7 @@ CORS(ServerApp)
 ServerApp.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URI")
 ServerApp.config['SQLALCHEMY_ECHO'] = True
 ServerApp.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+ServerApp.config['SERVER_NAME'] = os.getenv("REACT_APP_API_BASE_URL")
 
 # Add web service files (blueprints)
 ServerApp.register_blueprint(UserService)
