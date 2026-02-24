@@ -437,8 +437,8 @@ def getMetadata2(speciesName):
     # 3) Geolocations -> GeoJSON inline
     # ---------------------------------
     geo_files = {
-        "AOO": f"{normalized_name}_AOO.geojson",
-        "basins": f"{normalized_name}_basins.geojson",
+        # "AOO": f"{normalized_name}_AOO.geojson",
+        # "basins": f"{normalized_name}_basins.geojson",
         "EOO": f"{normalized_name}_EOO.geojson"
     }
 
