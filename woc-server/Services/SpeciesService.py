@@ -407,15 +407,16 @@ def getMetadata2(speciesName):
     bibliography_payload = None
 
     # Prefer JSON bibliography if exists
-    if os.path.isfile(bib_json_path):
-        try:
-            with open(bib_json_path, "r", encoding="utf-8") as f:
-                bibliography_payload = json.load(f)
-        except Exception as e:
-            bibliography_payload = {"error": f"Failed to read bibliography JSON: {str(e)}"}
+    # if os.path.isfile(bib_json_path):
+    #     try:
+    #         with open(bib_json_path, "r", encoding="utf-8") as f:
+    #             bibliography_payload = json.load(f)
+    #     except Exception as e:
+    #         bibliography_payload = {"error": f"Failed to read bibliography JSON: {str(e)}"}
 
     # Fallback: parse CSV into JSON list
-    elif os.path.isfile(bib_csv_path):
+    # elif os.path.isfile(bib_csv_path):
+    if os.path.isfile(bib_csv_path):
         try:
             with open(bib_csv_path, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
