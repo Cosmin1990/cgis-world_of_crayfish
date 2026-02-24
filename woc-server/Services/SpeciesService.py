@@ -335,6 +335,199 @@ def getMetadata(speciesName):
     return jsonify(manifest), 200
 
 
+@SpeciesService.route("/species/manifest2/<path:speciesName>", methods=['GET'])
+def getMetadata2(speciesName):
+    # --- Core configuration ---
+    SCHEMA_VERSION = "1.1.0"
+    BUNDLE_NAME = "woc-seb"
+    BUNDLE_VERSION = "1.0.0"
+    LICENSE = "CC-BY-4.0"
+    PIPELINE_NAME = "cheCkOVER"
+    PIPELINE_VERSION = "x.y.z"
+
+    now_iso = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+    recommended_citation = (
+        f"WoC (2026). Species Exposure Bundle: {speciesName}. "
+        f"SEB {BUNDLE_NAME}:{speciesName} v{BUNDLE_VERSION}."
+    )
+
+    normalized_name = normalize_species_name(speciesName)
+
+    base_dir = "/home/DATA_FILES"
+    species_dir = os.path.join(base_dir, normalized_name)
+    narratives_dir = os.path.join(species_dir, "narratives")
+    maps_dir = os.path.join(species_dir, "maps")
+    citations_dir = os.path.join(species_dir, "citations")
+
+    if not os.path.isdir(species_dir):
+        return build_response({"error": f"Species directory '{speciesName}' not found"}, 404)
+
+    resources = []
+
+    # ----------------------------
+    # 1) Narrative -> JSON inline
+    # ----------------------------
+    narrative_filename = f"{normalized_name}_canonical.md"
+    narrative_path = os.path.join(narratives_dir, narrative_filename)
+
+    narrative_payload = None
+    if os.path.isfile(narrative_path):
+        try:
+            with open(narrative_path, "r", encoding="utf-8") as f:
+                species_narrative = f.read()
+
+            pieces = species_narrative.split("FORMAL NARRATIVE SUMMARY (Human-Readable)")
+            short = pieces[1].strip() if len(pieces) > 1 else ""
+
+            narrative_payload = {
+                "short": short,
+                "full": species_narrative,
+                "sourceFormat": "md"
+            }
+        except Exception as e:
+            narrative_payload = {"error": f"Failed to read narrative: {str(e)}"}
+    else:
+        narrative_payload = None
+
+    resources.append({
+        "name": "Narrative",
+        "format": "json",
+        "content": narrative_payload
+    })
+
+    # ---------------------------------
+    # 2) Geolocations -> GeoJSON inline
+    # ---------------------------------
+    geo_files = {
+        "AOO": f"{normalized_name}_AOO.geojson",
+        "basins": f"{normalized_name}_basins.geojson",
+        "EOO": f"{normalized_name}_EOO.geojson"
+    }
+
+    for geo_type, filename in geo_files.items():
+        geo_path = os.path.join(maps_dir, filename)
+
+        geo_payload = None
+        if os.path.isfile(geo_path):
+            try:
+                with open(geo_path, "r", encoding="utf-8") as f:
+                    geo_payload = json.load(f)  # dict GeoJSON
+            except Exception as e:
+                geo_payload = {"error": f"Failed to read {geo_type}: {str(e)}"}
+        else:
+            geo_payload = None
+
+        resources.append({
+            "name": f"Geolocations ({geo_type})",
+            "format": "geojson",
+            "content": geo_payload
+        })
+
+    # --------------------------------
+    # 3) Bibliography -> JSON inline
+    # --------------------------------
+    bib_json_path = os.path.join(citations_dir, f"{normalized_name}_bibliography.json")
+    bib_csv_path = os.path.join(citations_dir, f"{normalized_name}_bibliography.csv")
+    bib_bib_path = os.path.join(citations_dir, f"{normalized_name}_bibliography.bib")
+    bib_cff_path = os.path.join(citations_dir, f"{normalized_name}_CITATION.cff")
+
+    bibliography_payload = None
+
+    # Prefer JSON bibliography if exists
+    if os.path.isfile(bib_json_path):
+        try:
+            with open(bib_json_path, "r", encoding="utf-8") as f:
+                bibliography_payload = json.load(f)
+        except Exception as e:
+            bibliography_payload = {"error": f"Failed to read bibliography JSON: {str(e)}"}
+
+    # Fallback: parse CSV into JSON list
+    elif os.path.isfile(bib_csv_path):
+        try:
+            with open(bib_csv_path, "r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                bibliography_payload = list(reader)
+        except Exception as e:
+            bibliography_payload = {"error": f"Failed to parse bibliography CSV: {str(e)}"}
+
+    else:
+        bibliography_payload = None
+
+    resources.append({
+        "name": "Bibliography",
+        "format": "json",
+        "content": bibliography_payload
+    })
+
+    # -----------------------------------------------------
+    # Optional: include text formats too (bib/cff) as JSON
+    # usage: /species/manifest/<species>?includeTextFormats=true
+    # -----------------------------------------------------
+    include_text_formats = request.args.get("includeTextFormats", "false").lower() == "true"
+
+    if include_text_formats:
+        if os.path.isfile(bib_bib_path):
+            try:
+                with open(bib_bib_path, "r", encoding="utf-8") as f:
+                    bib_content = f.read()
+                resources.append({
+                    "name": "Bibliography (bib)",
+                    "format": "json",
+                    "content": {
+                        "sourceFormat": "bib",
+                        "text": bib_content
+                    }
+                })
+            except Exception as e:
+                resources.append({
+                    "name": "Bibliography (bib)",
+                    "format": "json",
+                    "content": {"error": f"Failed to read .bib: {str(e)}"}
+                })
+
+        if os.path.isfile(bib_cff_path):
+            try:
+                with open(bib_cff_path, "r", encoding="utf-8") as f:
+                    cff_content = f.read()
+                resources.append({
+                    "name": "Bibliography (cff)",
+                    "format": "json",
+                    "content": {
+                        "sourceFormat": "cff",
+                        "text": cff_content
+                    }
+                })
+            except Exception as e:
+                resources.append({
+                    "name": "Bibliography (cff)",
+                    "format": "json",
+                    "content": {"error": f"Failed to read .cff: {str(e)}"}
+                })
+
+    # --- Manifest ---
+    manifest = {
+        "schemaVersion": SCHEMA_VERSION,
+        "id": f"{BUNDLE_NAME}:{speciesName}",
+        "name": BUNDLE_NAME,
+        "version": BUNDLE_VERSION,
+        "created": now_iso,
+        "updated": now_iso,
+        "license": LICENSE,
+        "recommendedCitation": recommended_citation,
+        "generatedBy": {
+            "pipeline": PIPELINE_NAME,
+            "pipelineVersion": PIPELINE_VERSION
+        },
+        "species": {
+            "scientificName": speciesName
+        },
+        "resources": resources
+    }
+
+    return jsonify(manifest), 200
+
+
 # Define Service endpoint
 @SpeciesService.route("/species/<string:speciesName>", methods=['GET'])
 def getSpeciesByName(speciesName):
