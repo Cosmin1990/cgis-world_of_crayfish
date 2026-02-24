@@ -396,36 +396,8 @@ def getMetadata2(speciesName):
         "content": narrative_payload
     })
 
-    # ---------------------------------
-    # 2) Geolocations -> GeoJSON inline
-    # ---------------------------------
-    geo_files = {
-        "AOO": f"{normalized_name}_AOO.geojson",
-        "basins": f"{normalized_name}_basins.geojson",
-        "EOO": f"{normalized_name}_EOO.geojson"
-    }
-
-    for geo_type, filename in geo_files.items():
-        geo_path = os.path.join(maps_dir, filename)
-
-        geo_payload = None
-        if os.path.isfile(geo_path):
-            try:
-                with open(geo_path, "r", encoding="utf-8") as f:
-                    geo_payload = json.load(f)  # dict GeoJSON
-            except Exception as e:
-                geo_payload = {"error": f"Failed to read {geo_type}: {str(e)}"}
-        else:
-            geo_payload = None
-
-        resources.append({
-            "name": f"Geolocations ({geo_type})",
-            "format": "geojson",
-            "content": geo_payload
-        })
-
     # --------------------------------
-    # 3) Bibliography -> JSON inline
+    # 2) Bibliography -> JSON inline
     # --------------------------------
     bib_json_path = os.path.join(citations_dir, f"{normalized_name}_bibliography.json")
     bib_csv_path = os.path.join(citations_dir, f"{normalized_name}_bibliography.csv")
@@ -459,6 +431,34 @@ def getMetadata2(speciesName):
         "format": "json",
         "content": bibliography_payload
     })
+
+    # ---------------------------------
+    # 3) Geolocations -> GeoJSON inline
+    # ---------------------------------
+    geo_files = {
+        "AOO": f"{normalized_name}_AOO.geojson",
+        "basins": f"{normalized_name}_basins.geojson",
+        "EOO": f"{normalized_name}_EOO.geojson"
+    }
+
+    for geo_type, filename in geo_files.items():
+        geo_path = os.path.join(maps_dir, filename)
+
+        geo_payload = None
+        if os.path.isfile(geo_path):
+            try:
+                with open(geo_path, "r", encoding="utf-8") as f:
+                    geo_payload = json.load(f)  # dict GeoJSON
+            except Exception as e:
+                geo_payload = {"error": f"Failed to read {geo_type}: {str(e)}"}
+        else:
+            geo_payload = None
+
+        resources.append({
+            "name": f"Geolocations ({geo_type})",
+            "format": "geojson",
+            "content": geo_payload
+        })
 
     # -----------------------------------------------------
     # Optional: include text formats too (bib/cff) as JSON
