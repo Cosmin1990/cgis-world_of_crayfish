@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from flask import Blueprint, request, Response, send_file, after_this_request, jsonify
 from flask import url_for
 import json
@@ -164,7 +166,6 @@ def getSpeciesNarrative(speciesName):
 
 @SpeciesService.route("/species/bibliography/<path:speciesName>/<path:fileType>", methods=['GET'])
 def getSpeciesBibliographyFile(speciesName, fileType):
-
     normalized_name = normalize_species_name(speciesName)
 
     base_dir = "/home/DATA_FILES"
@@ -221,19 +222,77 @@ def getSpeciesBibliographyFile(speciesName, fileType):
     )
 
 
+# @SpeciesService.route("/species/manifest/<path:speciesName>", methods=['GET'])
+# def getMetadata(speciesName):
+#     resources = []
+#
+#     server_url = "https://cgisdev.utcluj.ro/woc/api"
+#     encodedSpeciesName = quote(speciesName)
+#
+#     resources.append({
+#         "name": f"Narrative",
+#         "path": server_url + "/species/narrative/" + encodedSpeciesName,
+#         "format": "md"
+#     })
+#
+#     geolocation_types = ["AOO", "basins", "EOO"]
+#     for geoType in geolocation_types:
+#         resources.append({
+#             "name": f"Geolocations ({geoType})",
+#             "path": server_url + "/species/geolocations/" + encodedSpeciesName + "/" + geoType + "?mode=inline",
+#             "format": "geojson"
+#         })
+#
+#     bibliography_formats = ["json", "csv", "bib", "cff"]
+#
+#     for fmt in bibliography_formats:
+#         resources.append({
+#             "name": f"Bibliography ({fmt})",
+#             "path": server_url + "/species/bibliography/" + encodedSpeciesName + "/" + fmt + "?mode=inline",
+#             "format": fmt
+#         })
+#
+#     manifest = {
+#         "id": "woc-seb:" + speciesName,
+#         "name": "woc-seb",
+#         "version": "1.0.0",
+#         "species": {
+#             "scientificName": speciesName
+#         },
+#         "resources": resources
+#     }
+#
+#     return build_response({"manifest": manifest}, 200)
 
 
-
-@SpeciesService.route("/species/metadata/<path:speciesName>", methods=['GET'])
+@SpeciesService.route("/species/manifest/<path:speciesName>", methods=['GET'])
 def getMetadata(speciesName):
     resources = []
 
     server_url = "https://cgisdev.utcluj.ro/woc/api"
     encodedSpeciesName = quote(speciesName)
 
+    # --- Core configuration (ideally move to app config/env vars) ---
+    SCHEMA_VERSION = "1.1.0"
+    BUNDLE_NAME = "woc-seb"
+    BUNDLE_VERSION = "1.0.0"
+    LICENSE = "CC-BY-4.0"
+    PIPELINE_NAME = "cheCkOVER"
+    PIPELINE_VERSION = "x.y.z"
+
+    # ISO 8601 timestamps (UTC, with 'Z')
+    now_iso = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+    # Recommended citation (minimal but consistent)
+    recommended_citation = (
+        f"WoC (2026). Species Exposure Bundle: {speciesName}. "
+        f"SEB {BUNDLE_NAME}:{speciesName} v{BUNDLE_VERSION}."
+    )
+
+    # --- Resources ---
     resources.append({
-        "name": f"Narrative",
-        "path": server_url + "/species/narrative/" + encodedSpeciesName,
+        "name": "Narrative",
+        "path": f"{server_url}/species/narrative/{encodedSpeciesName}",
         "format": "md"
     })
 
@@ -241,30 +300,39 @@ def getMetadata(speciesName):
     for geoType in geolocation_types:
         resources.append({
             "name": f"Geolocations ({geoType})",
-            "path": server_url + "/species/geolocations/" + encodedSpeciesName + "/" + geoType + "?mode=inline",
+            "path": f"{server_url}/species/geolocations/{encodedSpeciesName}/{geoType}?mode=inline",
             "format": "geojson"
         })
 
     bibliography_formats = ["json", "csv", "bib", "cff"]
-
     for fmt in bibliography_formats:
         resources.append({
             "name": f"Bibliography ({fmt})",
-            "path": server_url + "/species/bibliography/" + encodedSpeciesName + "/" + fmt + "?mode=inline",
+            "path": f"{server_url}/species/bibliography/{encodedSpeciesName}/{fmt}?mode=inline",
             "format": fmt
         })
 
+    # --- Manifest ---
     manifest = {
-        "id": "woc-seb:" + speciesName,
-        "name": "woc-seb",
-        "version": "1.0.0",
+        "schemaVersion": SCHEMA_VERSION,
+        "id": f"{BUNDLE_NAME}:{speciesName}",
+        "name": BUNDLE_NAME,
+        "version": BUNDLE_VERSION,
+        "created": now_iso,
+        "updated": now_iso,
+        "license": LICENSE,
+        "recommendedCitation": recommended_citation,
+        "generatedBy": {
+            "pipeline": PIPELINE_NAME,
+            "pipelineVersion": PIPELINE_VERSION
+        },
         "species": {
             "scientificName": speciesName
         },
         "resources": resources
     }
 
-    return build_response({"manifest": manifest}, 200)
+    return jsonify(manifest), 200
 
 
 # Define Service endpoint
@@ -281,7 +349,6 @@ def getSpeciesByName(speciesName):
     methods=['GET']
 )
 def getSpeciesGeolocationsFile(speciesName, geoType):
-
     normalized_name = normalize_species_name(speciesName)
 
     base_dir = "/home/DATA_FILES"
@@ -337,13 +404,10 @@ def getSpeciesGeolocationsFile(speciesName, geoType):
         )
 
         # return build_response({"geolocations": geojson_data}, 200)
-        
+
     # 🔹 DEFAULT → download (comportament vechi)
     return send_file(
         filePath,
         mimetype="application/geo+json",
         as_attachment=True
     )
-
-
-
