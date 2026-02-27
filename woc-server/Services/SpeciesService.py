@@ -299,16 +299,26 @@ def getMetadata(speciesName):
     geolocation_types = ["AOO", "basins", "EOO"]
     for geoType in geolocation_types:
         resources.append({
-            "name": f"Geolocations ({geoType})",
+            "name": f"Geolocations ({geoType}) - inline",
             "path": f"{server_url}/species/geolocations/{encodedSpeciesName}/{geoType}?mode=inline",
+            "format": "geojson"
+        })
+        resources.append({
+            "name": f"Geolocations ({geoType}) - download",
+            "path": f"{server_url}/species/geolocations/{encodedSpeciesName}/{geoType}",
             "format": "geojson"
         })
 
     bibliography_formats = ["json", "csv", "bib", "cff"]
     for fmt in bibliography_formats:
         resources.append({
-            "name": f"Bibliography ({fmt})",
+            "name": f"Bibliography ({fmt}) - inline",
             "path": f"{server_url}/species/bibliography/{encodedSpeciesName}/{fmt}?mode=inline",
+            "format": fmt
+        })
+        resources.append({
+            "name": f"Bibliography ({fmt}) - download",
+            "path": f"{server_url}/species/bibliography/{encodedSpeciesName}/{fmt}",
             "format": fmt
         })
 

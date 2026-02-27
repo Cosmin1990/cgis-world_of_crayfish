@@ -84,6 +84,44 @@ function RecordDetails() {
     setTimeout(() => setCopied(false), 1500);
   };
 
+  const encodedSpeciesName = encodeURIComponent(speciesName ?? "");
+  const sebManifestUrl = `${process.env.REACT_APP_API_BASE_URL}/species/manifest2/${encodedSpeciesName}`;
+  const [sebLinkCopied, setSebLinkCopied] = useState(false);
+
+  const copySebManifestLink = async () => {
+    try {
+      await navigator.clipboard.writeText(sebManifestUrl);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = sebManifestUrl;
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
+
+    setSebLinkCopied(true);
+    setTimeout(() => setSebLinkCopied(false), 1500);
+  };
+
+  const [sebCopied, setSebCopied] = useState(false);
+
+  const copySebManifestJson = async () => {
+    try {
+      const res = await fetch(sebManifestUrl);
+      const text = await res.text();
+
+      await navigator.clipboard.writeText(text);
+
+      setSebCopied(true);
+      setTimeout(() => setSebCopied(false), 1500);
+    } catch (err) {
+      console.error("Error copying SEB manifest:", err);
+    }
+  };
+
   // ------------------- First effect: record + species + AphiaID -------------------
 
   useEffect(() => {
@@ -306,6 +344,8 @@ function RecordDetails() {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
+  
+
   // ======================= Render =======================
 
   return (
@@ -466,6 +506,31 @@ function RecordDetails() {
     >
       Download archive
     </a>
+  </section>
+)}
+
+    {speciesName && (
+  <section className="card">
+    <h2>Species Exposure Bundle manifest</h2>
+
+    <p className="subtitle">
+      AI-readable manifest for programmatic access to species resources.
+    </p>
+
+    <div className="button-row">
+      <button className="btn-modern" onClick={copySebManifestLink}>
+        {sebLinkCopied ? "Copied link ✔" : "Copy manifest link"}
+      </button>
+
+      <a
+        className="btn-modern"
+        href={sebManifestUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Open / Download manifest
+      </a>
+    </div>
   </section>
 )}
 
