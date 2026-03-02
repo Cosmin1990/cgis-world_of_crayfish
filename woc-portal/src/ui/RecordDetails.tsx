@@ -85,7 +85,7 @@ function RecordDetails() {
   };
 
   const encodedSpeciesName = encodeURIComponent(speciesName ?? "");
-  const sebManifestUrl = `${process.env.REACT_APP_API_BASE_URL}/species/manifest2/${encodedSpeciesName}`;
+  const sebManifestUrl = `${process.env.REACT_APP_API_BASE_URL}species/manifest2/${encodedSpeciesName}`;
   const [sebLinkCopied, setSebLinkCopied] = useState(false);
 
   const copySebManifestLink = async () => {
