@@ -86,6 +86,7 @@ function RecordDetails() {
 
   const encodedSpeciesName = encodeURIComponent(speciesName ?? "");
   const sebManifestUrl = `${process.env.REACT_APP_API_BASE_URL}species/manifest2/${encodedSpeciesName}`;
+  const sebManifestDownloadUrl = `${process.env.REACT_APP_API_BASE_URL}species/manifest/${encodedSpeciesName}`;
   const [sebLinkCopied, setSebLinkCopied] = useState(false);
 
   const copySebManifestLink = async () => {
@@ -524,7 +525,7 @@ function RecordDetails() {
 
       <a
         className="btn-modern"
-        href={sebManifestUrl}
+        href={sebManifestDownloadUrl}
         target="_blank"
         rel="noopener noreferrer"
       >
