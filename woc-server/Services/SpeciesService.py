@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timezone
 
 from flask import Blueprint, request, Response, send_file, after_this_request, jsonify
@@ -309,7 +310,8 @@ def getMetadata(speciesName):
             "format": "geojson"
         })
 
-    bibliography_formats = ["json", "csv", "bib", "cff"]
+    # bibliography_formats = ["json", "csv", "bib", "cff"]
+    bibliography_formats = ["json"]
     for fmt in bibliography_formats:
         resources.append({
             "name": f"Bibliography ({fmt}) - inline",
@@ -343,6 +345,23 @@ def getMetadata(speciesName):
     }
 
     return jsonify(manifest), 200
+
+
+def remove_md_sections(md_text: str, section_titles: list[str], level: int = 4) -> str:
+    """
+    Remove markdown sections like:
+    #### Title
+    ...content...
+    until the next heading of level <= current level.
+    """
+    for title in section_titles:
+        pattern = (
+            rf'(?ms)^{"#" * level}\s+{re.escape(title)}\s*\n'   # heading line
+            rf'.*?'                                             # section body
+            rf'(?=^#{{1,{level}}}\s+|\Z)'                       # next heading lvl 1..level or EOF
+        )
+        md_text = re.sub(pattern, "", md_text)
+    return md_text.strip()
 
 
 @SpeciesService.route("/species/manifest2/<path:speciesName>", methods=['GET'])
@@ -387,12 +406,18 @@ def getMetadata2(speciesName):
             with open(narrative_path, "r", encoding="utf-8") as f:
                 species_narrative = f.read()
 
+            cleaned_narrative = remove_md_sections(
+                species_narrative,
+                ["Geographic Distribution", "Conservation Context"],
+                level=4
+            )
+
             pieces = species_narrative.split("FORMAL NARRATIVE SUMMARY (Human-Readable)")
             short = pieces[1].strip() if len(pieces) > 1 else ""
 
             narrative_payload = {
                 "short": short,
-                "full": species_narrative,
+                "full": cleaned_narrative,
                 "sourceFormat": "md"
             }
         except Exception as e:
