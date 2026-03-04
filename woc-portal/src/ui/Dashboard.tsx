@@ -15,7 +15,7 @@ function Dashboard (){
             <h3 style={{ marginTop: "0.1em" }}>explore by making your selection below</h3>
 
             <img
-                src={process.env.REACT_APP_PUBLIC_URL + "/wallpaper1.jpg"}
+                src={process.env.REACT_APP_PUBLIC_URL + "/wallpaper2.jpg"}
                 alt="Logo"
                 className="wallpaper"
             />
