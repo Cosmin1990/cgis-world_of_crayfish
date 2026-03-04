@@ -3,7 +3,7 @@
   min-width: 260px;
   height: 100vh;
   padding: 1.2rem;
-  background: #F2E4A7;
+  background: #528BB8;
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
@@ -16,8 +16,8 @@
   display: flex;
   justify-content: center;
   gap: 0.4rem;
-  font-size: 0.85rem;
-  color: #2563eb;
+  font-size: 1rem;
+  color: #ffffff;
 }
 
 .sidebar-auth span {

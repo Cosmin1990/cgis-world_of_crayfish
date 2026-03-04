@@ -30,9 +30,9 @@ function Sidebar() {
 
       {/* Auth links */}
       <div className="sidebar-auth">
-        <span onClick={() => navigate("/signin")}>Sign in</span>
-        <span className="divider">/</span>
-        <span onClick={() => navigate("/register")}>Register</span>
+        <span onClick={() => window.location.href = "https://world.crayfish.ro"}>
+            Home
+        </span>
       </div>
 
       {/* Logo */}
@@ -41,14 +41,6 @@ function Sidebar() {
         alt="Logo"
         className="sidebar-logo"
       />
-
-      {/* Navigation */}
-      <nav className="sidebar-nav">
-        <button onClick={() => navigate("/")}>Home</button>
-        <button onClick={() => navigate("/cite")}>How to cite us</button>
-        <button onClick={() => navigate("/about")}>About</button>
-        <button onClick={() => navigate("/join")}>Join us</button>
-      </nav>
 
       {/* Species selector */}
       <section className="sidebar-card">

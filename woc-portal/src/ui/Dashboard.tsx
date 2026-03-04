@@ -8,7 +8,7 @@ function Dashboard (){
                 
             {/* <h1>Dashboard</h1> */}
             <h1 style={{ marginTop: "0.1em", marginBottom: "0.3em" }}>
-            Welcome to the <em>World of Crayfish</em><sup>®</sup>
+            Explore Species Profiles
             </h1>
 
             <h3 style={{ marginTop: "0.1em" , marginBottom: "0.3em"}}>Your hub for science, education and entertainment</h3>
