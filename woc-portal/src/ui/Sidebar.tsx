@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Sidebar.css";
 
@@ -7,27 +7,92 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+interface SpeciesItem {
+  genus: string;
+  species: string;
+  fullName: string;
+}
+
 function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navigate = useNavigate();
 
-  const [allSpecies, setAllSpecies] = useState<string[]>([]);
+  const [allSpecies, setAllSpecies] = useState<SpeciesItem[]>([]);
+  const [selectedGenus, setSelectedGenus] = useState<string>("");
   const [selectedSpecies, setSelectedSpecies] = useState<string>("");
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_API_BASE_URL}/records/species_names`)
       .then((response) => response.json())
-      .then((data) => {
-        setAllSpecies(data);
-        if (data.length > 0) setSelectedSpecies(data[0]);
+      .then((data: string[]) => {
+        const parsedData: SpeciesItem[] = data.map((fullName) => {
+          const parts = fullName.trim().split(/\s+/);
+          return {
+            genus: parts[0] || "",
+            species: parts.slice(1).join(" ") || "",
+            fullName,
+          };
+        });
+
+        setAllSpecies(parsedData);
+
+        if (parsedData.length > 0) {
+          setSelectedGenus(parsedData[0].genus);
+          setSelectedSpecies(parsedData[0].species);
+        }
       })
       .catch((error) => {
         console.error("Error fetching species:", error);
       });
   }, []);
 
+  const uniqueGenera = useMemo(() => {
+    const genera = allSpecies.map((item) => item.genus);
+    return genera.filter((genus, index) => genera.indexOf(genus) === index);
+  }, [allSpecies]);
+
+  const speciesForSelectedGenus = useMemo(() => {
+    return allSpecies.filter((item) => item.genus === selectedGenus);
+  }, [allSpecies, selectedGenus]);
+
+  useEffect(() => {
+    if (speciesForSelectedGenus.length > 0) {
+      const exists = speciesForSelectedGenus.some(
+        (item) => item.species === selectedSpecies
+      );
+
+      if (!exists) {
+        setSelectedSpecies(speciesForSelectedGenus[0].species);
+      }
+    } else {
+      setSelectedSpecies("");
+    }
+  }, [speciesForSelectedGenus, selectedSpecies]);
+
+  const handleGenusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newGenus = e.target.value;
+    setSelectedGenus(newGenus);
+
+    const firstSpeciesForGenus = allSpecies.find(
+      (item) => item.genus === newGenus
+    );
+
+    setSelectedSpecies(firstSpeciesForGenus ? firstSpeciesForGenus.species : "");
+  };
+
+  const handleSpeciesChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedSpecies(e.target.value);
+  };
+
   const handleDisplaySelection = () => {
-    navigate("/details/" + selectedSpecies);
-    onClose(); // închide sidebar-ul după selecție pe mobil
+    const selectedItem = allSpecies.find(
+      (item) =>
+        item.genus === selectedGenus && item.species === selectedSpecies
+    );
+
+    if (selectedItem) {
+      navigate("/details/" + encodeURIComponent(selectedItem.fullName));
+      onClose();
+    }
   };
 
   return (
@@ -43,7 +108,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
         </button>
 
         <div className="sidebar-auth">
-          <span onClick={() => window.location.href = "https://world.crayfish.ro"}>
+          <span onClick={() => (window.location.href = "https://world.crayfish.ro")}>
             Home
           </span>
         </div>
@@ -58,22 +123,27 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
           <h3>Species selector</h3>
 
           <label>Crayfish genus</label>
-          <select
-            value={selectedSpecies}
-            onChange={(e) => setSelectedSpecies(e.target.value)}
-          >
-            {allSpecies.map((species) => (
-              <option key={species}>{species}</option>
+          <select value={selectedGenus} onChange={handleGenusChange}>
+            {uniqueGenera.map((genus) => (
+              <option key={genus} value={genus}>
+                {genus}
+              </option>
             ))}
           </select>
 
-          <label className="disabled">Crayfish species</label>
-          <select disabled />
+          <label>Crayfish species</label>
+          <select value={selectedSpecies} onChange={handleSpeciesChange}>
+            {speciesForSelectedGenus.map((item) => (
+              <option key={item.fullName} value={item.species}>
+                {item.species}
+              </option>
+            ))}
+          </select>
 
           <button
             className="btn-modern"
             onClick={handleDisplaySelection}
-            disabled={!selectedSpecies}
+            disabled={!selectedGenus || !selectedSpecies}
           >
             Display selection
           </button>
