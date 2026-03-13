@@ -13,9 +13,7 @@ from Services.IUCBService import Iucn_bp
 ServerApp = Flask(__name__)
 
 # For development purposes only!!!!!!!
-CORS(ServerApp,
-     origins=["https://world.crayfish.ro"],
-     )
+CORS(ServerApp)
 
 
 # Configure Application Database access
