@@ -14,11 +14,7 @@ ServerApp = Flask(__name__)
 
 # For development purposes only!!!!!!!
 CORS(ServerApp,
-     resources={
-         r"/woc/.*": {
-             "origins": ["https://world.crayfish.ro"]
-         }
-     }
+     origins=["https://world.crayfish.ro"],
      )
 
 
