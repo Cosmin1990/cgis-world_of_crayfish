@@ -6,8 +6,14 @@ from Database.DBConnection import db
 from Services.UserService import UserService
 from Services.RecordService import RecordService
 from Services.SpeciesService import SpeciesService
+from Services.SnapshotsService import SnapshotsService
 from Services.IUCBService import Iucn_bp
 
+from Database.Model.User import User
+from Database.Model.Record import Record
+from Database.Model.Species import Species
+from Database.Model.Snapshots import Snapshots
+from Database.Model.SpeciesSnapshots import SpeciesSnapshots
 
 # Create Server
 ServerApp = Flask(__name__)
@@ -27,13 +33,14 @@ ServerApp.config['SERVER_NAME'] = os.getenv("REACT_APP_API_BASE_URL")
 ServerApp.register_blueprint(UserService)
 ServerApp.register_blueprint(RecordService)
 ServerApp.register_blueprint(SpeciesService)
+ServerApp.register_blueprint(SnapshotsService)
 ServerApp.register_blueprint(Iucn_bp)
 
 
 # Start Server
 if __name__ == "__main__":
     # Start Database initialization => creates all tables described within Database/Tables.py
-    # This can be activated by calling with the "init_db" parameter: "python ServerApp.pyinit_db"
+    # This can be activated by calling with the "init_db" parameter: "python ServerApp.py init_db"
     if len(sys.argv)>1:
         if sys.argv[1] == "init_db":
            db.init_app(ServerApp) 

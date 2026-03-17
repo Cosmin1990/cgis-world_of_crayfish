@@ -2,7 +2,6 @@ import re
 from datetime import datetime, timezone
 
 from flask import Blueprint, request, Response, send_file, after_this_request, jsonify
-from flask import url_for
 import json
 import os
 import shutil
@@ -12,8 +11,15 @@ from urllib.parse import quote
 
 from Database.DBConnection import db
 from Database.Model.Species import Species
+from Database.Model.Snapshots import Snapshots
 from Database.Schema.SpeciesSchema import *
 from Services.Support import *
+from Database.Schema.SpeciesSchema import (
+    SpeciesOutDTO,
+    SpeciesPaginatedDTO,
+    SpeciesSnapshotsOutDTO,
+    SpeciesSnapshotItemDTO
+)
 
 # Create Service blueprint
 SpeciesService = Blueprint('SpeciesService', __name__)
@@ -26,61 +32,150 @@ def normalize_species_name(species_name: str) -> str:
     return name[0].upper() + name[1:] if name else name
 
 
-# Define Service endpoint 
+def normalize_snapshot_name(snapshot_name: str) -> str:
+    name = snapshot_name.strip()
+    name = name.replace(" ", "_").replace("(", "_").replace(")", "_")
+    name = name.lower()
+    return name[0].upper() + name[1:] if name else name
+
+
+def get_latest_snapshot():
+    return Snapshots.query.order_by(Snapshots.snapshot_date.desc(), Snapshots.id.desc()).first()
+
+
+def resolve_species_base_dir(snapshot_id: int | None = None):
+    """
+    Returnează:
+      - base_dir-ul din care citim specia
+      - snapshot-ul folosit (sau None dacă se citește din /home/DATA_FILES)
+      - error_response (sau None)
+
+    Reguli:
+      1. dacă snapshot_id este specificat -> caută snapshotul respectiv
+      2. dacă snapshot_id nu este specificat -> ia cel mai recent snapshot
+      3. dacă nu există snapshot -> fallback la /home/DATA_FILES
+    """
+    default_base_dir = "/home/DATA_FILES"
+    snapshots_root = "/home/snapshots"
+
+    if snapshot_id is not None:
+        requested_snapshot = Snapshots.query.filter_by(id=snapshot_id).first()
+
+        if requested_snapshot is None:
+            return None, None, build_response(
+                {"error": f"Snapshot with id '{snapshot_id}' not found"},
+                404
+            )
+
+        normalized_snapshot_name = normalize_snapshot_name(requested_snapshot.snapshot_name)
+        snapshot_base_dir = os.path.join(snapshots_root, normalized_snapshot_name)
+
+        if not os.path.isdir(snapshot_base_dir):
+            return None, None, build_response(
+                {"error": f"Snapshot directory not found for snapshot id '{snapshot_id}'"},
+                404
+            )
+
+        return snapshot_base_dir, requested_snapshot, None
+
+    latest_snapshot = get_latest_snapshot()
+    if latest_snapshot is not None:
+        normalized_snapshot_name = normalize_snapshot_name(latest_snapshot.snapshot_name)
+        snapshot_base_dir = os.path.join(snapshots_root, normalized_snapshot_name)
+
+        if os.path.isdir(snapshot_base_dir):
+            return snapshot_base_dir, latest_snapshot, None
+
+    return default_base_dir, None, None
+
+
+def resolve_species_dir(species_name: str, snapshot_id: int | None = None):
+    normalized_name = normalize_species_name(species_name)
+
+    base_dir, snapshot, error_response = resolve_species_base_dir(snapshot_id)
+    if error_response is not None:
+        return None, None, None, error_response
+
+    species_dir = os.path.join(base_dir, normalized_name)
+
+    if not os.path.isdir(species_dir):
+        source_label = f"id={snapshot.id}" if snapshot else "default"
+        return None, None, None, build_response(
+            {"error": f"Species directory '{species_name}' not found in snapshot '{source_label}'"},
+            404
+        )
+
+    return normalized_name, species_dir, snapshot, None
+
+
+def remove_md_sections(md_text: str, section_titles: list[str], level: int = 4) -> str:
+    for title in section_titles:
+        pattern = (
+            rf'(?ms)^{"#" * level}\s+{re.escape(title)}\s*\n'
+            rf'.*?'
+            rf'(?=^#{{1,{level}}}\s+|\Z)'
+        )
+        md_text = re.sub(pattern, "", md_text)
+    return md_text.strip()
+
+
 @SpeciesService.route("/species/new", methods=['POST'])
 def addSpeciesRecord():
     if not request.is_json:
         return build_response({"error": "Request must contain JSON"}, 400)
-    else:
-        data = request.get_json()
-        try:
-            # Validate the JSON data
-            validated_data = SpeciesInDTO(**data)  # Validate data
 
-            new_species = Species(
-                species_name=validated_data.species_name,
-                official_id=validated_data.official_id
-            )
+    data = request.get_json()
+    try:
+        validated_data = SpeciesInDTO(**data)
 
-            db.session.add(new_species)
-            db.session.commit()
-            return build_response(
-                SpeciesOutDTO.model_validate(new_species).model_dump(), 201)
-        except ValidationError as e:
-            return build_response({"error": e.errors()}, 400)
+        new_species = Species(
+            species_name=validated_data.species_name,
+        )
+
+        db.session.add(new_species)
+        db.session.commit()
+
+        return build_response(
+            SpeciesOutDTO.model_validate(new_species).model_dump(),
+            201
+        )
+    except ValidationError as e:
+        return build_response({"error": e.errors()}, 400)
 
 
-# Define Service endpoint 
 @SpeciesService.route("/species/confirmation/<path:speciesName>", methods=['GET'])
 def getSpeciesDirectoryAvailability(speciesName):
-    # Normalize species name: replace spaces with underscores
-    # normalized_name = speciesName.strip().replace(" ", "_")
+    snapshot_id = request.args.get("snapshot_id", default=None, type=int)
+
     normalized_name = normalize_species_name(speciesName)
 
-    # Build path to DATA_FILES directory under server home
-    base_dir = "/home/DATA_FILES"
+    base_dir, snapshot, error_response = resolve_species_base_dir(snapshot_id)
+    if error_response is not None:
+        return error_response
+
     species_dir = os.path.join(base_dir, normalized_name)
-
     exists = os.path.isdir(species_dir)
-    if exists:
-        return build_response({"exists": True}, 201)
-    else:
-        return build_response({"exists": False}, 404)
+
+    return build_response({
+        "exists": exists,
+        "snapshot_used": {
+            "id": snapshot.id,
+            "snapshot_name": snapshot.snapshot_name,
+            "date": snapshot.date.isoformat()
+        } if snapshot else None
+    }, 200 if exists else 404)
 
 
-# Define Service endpoint 
 @SpeciesService.route("/species/archive/<path:speciesName>", methods=['GET'])
 def getSpeciesDirectoryZip(speciesName):
-    # Normalize species name: replace spaces with underscores
-    # normalized_name = speciesName.strip().replace(" ", "_")
-    normalized_name = normalize_species_name(speciesName)
+    snapshot_id = request.args.get("snapshot_id", default=None, type=int)
 
-    # Build path to DATA_FILES directory under server home
-    base_dir = "/home/DATA_FILES"
-    species_dir = os.path.join(base_dir, normalized_name)
-
-    if not os.path.isdir(species_dir):
-        return build_response({"error": f"Species directory '{speciesName}' not found"}, 404)
+    normalized_name, species_dir, snapshot, error_response = resolve_species_dir(
+        speciesName,
+        snapshot_id
+    )
+    if error_response is not None:
+        return error_response
 
     zip_base = os.path.join("/tmp", normalized_name)
     zip_path = shutil.make_archive(zip_base, 'zip', species_dir)
@@ -91,27 +186,28 @@ def getSpeciesDirectoryZip(speciesName):
             os.remove(zip_path)
         return response
 
+    download_name = f"{normalized_name}.zip"
+    if snapshot:
+        download_name = f"{normalized_name}_snapshot_{snapshot.id}.zip"
+
     return send_file(
         zip_path,
         mimetype='application/zip',
         as_attachment=True,
-        download_name=f"{normalized_name}.zip"
+        download_name=download_name
     )
 
 
 @SpeciesService.route("/species/geolocations/<path:speciesName>", methods=['GET'])
 def getSpeciesGeolocations(speciesName):
-    # Normalize species name: replace spaces with underscores
-    # normalized_name = speciesName.strip().replace(" ", "_")
+    snapshot_id = request.args.get("snapshot_id", default=None, type=int)
 
-    normalized_name = normalize_species_name(speciesName)
-
-    # Build path to DATA_FILES directory under server home
-    base_dir = "/home/DATA_FILES"
-    species_dir = os.path.join(base_dir, normalized_name)
-
-    if not os.path.isdir(species_dir):
-        return build_response({"error": f"Species directory '{speciesName}' not found"}, 404)
+    normalized_name, species_dir, snapshot, error_response = resolve_species_dir(
+        speciesName,
+        snapshot_id
+    )
+    if error_response is not None:
+        return error_response
 
     maps_dir = os.path.join(species_dir, "maps")
 
@@ -121,12 +217,19 @@ def getSpeciesGeolocations(speciesName):
         "EOO": f"{normalized_name}_EOO.geojson"
     }
 
-    result = {}
+    result = {
+        "snapshot_used": {
+            "id": snapshot.id,
+            "snapshot_name": snapshot.snapshot_name,
+            "date": snapshot.date.isoformat()
+        } if snapshot else None
+    }
+
     for key, filename in filenames.items():
         filepath = os.path.join(maps_dir, filename)
         if os.path.isfile(filepath):
             try:
-                with open(filepath, 'r') as f:
+                with open(filepath, 'r', encoding="utf-8") as f:
                     result[key] = json.load(f)
             except Exception:
                 result[key] = None
@@ -136,48 +239,61 @@ def getSpeciesGeolocations(speciesName):
     return build_response(result, 200)
 
 
-# Define Service endpoint 
 @SpeciesService.route("/species/narrative/<path:speciesName>", methods=['GET'])
 def getSpeciesNarrative(speciesName):
-    # Normalize species name: replace spaces with underscores
-    # normalized_name = speciesName.strip().replace(" ", "_")
-    normalized_name = normalize_species_name(speciesName)
+    snapshot_id = request.args.get("snapshot_id", default=None, type=int)
 
-    # Build path to DATA_FILES directory under server home
-    base_dir = "/home/DATA_FILES"
-    species_dir = os.path.join(base_dir, normalized_name)
-
-    if not os.path.isdir(species_dir):
-        return build_response({"error": f"Species directory '{speciesName}' not found"}, 404)
+    normalized_name, species_dir, snapshot, error_response = resolve_species_dir(
+        speciesName,
+        snapshot_id
+    )
+    if error_response is not None:
+        return error_response
 
     filename = normalized_name + "_canonical.md"
-    species_description_file = os.path.join(os.path.join(species_dir, "narratives"), filename)
-    # read naratice from "species" file
-    species_narrative = ""
+    species_description_file = os.path.join(species_dir, "narratives", filename)
+
+    if not os.path.isfile(species_description_file):
+        return build_response(
+            {"error": f"Narrative file not found for species '{speciesName}'"},
+            404
+        )
+
     with open(species_description_file, "r", encoding="utf-8") as f:
         species_narrative = f.read()
 
     pieces = species_narrative.split("FORMAL NARRATIVE SUMMARY (Human-Readable)")
-    short = ""
-    if len(pieces) > 1:
-        short = pieces[1].strip()
+    short = pieces[1].strip() if len(pieces) > 1 else ""
 
-    return build_response({"short": short, "full": species_narrative}, 200)
+    return build_response({
+        "snapshot_used": {
+            "id": snapshot.id,
+            "snapshot_name": snapshot.snapshot_name,
+            "date": snapshot.date.isoformat()
+        } if snapshot else None,
+        "short": short,
+        "full": species_narrative
+    }, 200)
 
 
 @SpeciesService.route("/species/bibliography/<path:speciesName>/<path:fileType>", methods=['GET'])
 def getSpeciesBibliographyFile(speciesName, fileType):
-    normalized_name = normalize_species_name(speciesName)
+    snapshot_id = request.args.get("snapshot_id", default=None, type=int)
 
-    base_dir = "/home/DATA_FILES"
-    species_dir = os.path.join(base_dir, normalized_name)
+    normalized_name, species_dir, snapshot, error_response = resolve_species_dir(
+        speciesName,
+        snapshot_id
+    )
+    if error_response is not None:
+        return error_response
+
     bib_dir = os.path.join(species_dir, "citations")
 
-    if not os.path.isdir(species_dir):
-        return build_response({"error": f"Species directory '{speciesName}' not found"}, 404)
-
     if not os.path.isdir(bib_dir):
-        return build_response({"error": f"Bibliography directory not found for species:'{speciesName}'"}, 404)
+        return build_response(
+            {"error": f"Bibliography directory not found for species:'{speciesName}'"},
+            404
+        )
 
     fType = fileType.lower().strip()
 
@@ -197,73 +313,45 @@ def getSpeciesBibliographyFile(speciesName, fileType):
 
     mode = request.args.get("mode", "download")
 
-    # 🔹 MODE INLINE → return JSON object
     if mode == "inline":
-
         if fType == "json":
             with open(filePath, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            return build_response(data, 200)
+            return build_response({
+                "snapshot_used": {
+                    "id": snapshot.id,
+                    "snapshot_name": snapshot.snapshot_name,
+                    "date": snapshot.date.isoformat()
+                } if snapshot else None,
+                "data": data
+            }, 200)
 
         elif fType == "csv":
             with open(filePath, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 data = list(reader)
-            return build_response(data, 200)
+            return build_response({
+                "snapshot_used": {
+                    "id": snapshot.id,
+                    "snapshot_name": snapshot.snapshot_name,
+                    "date": snapshot.date.isoformat()
+                } if snapshot else None,
+                "data": data
+            }, 200)
 
         elif fType in ["bib", "cff"]:
             with open(filePath, "r", encoding="utf-8") as f:
                 content = f.read()
-            return build_response({"content": content}, 200)
+            return build_response({
+                "snapshot_used": {
+                    "id": snapshot.id,
+                    "snapshot_name": snapshot.snapshot_name,
+                    "date": snapshot.date.isoformat()
+                } if snapshot else None,
+                "content": content
+            }, 200)
 
-    # 🔹 MODE DEFAULT → download
-    return send_file(
-        filePath,
-        as_attachment=True,
-    )
-
-
-# @SpeciesService.route("/species/manifest/<path:speciesName>", methods=['GET'])
-# def getMetadata(speciesName):
-#     resources = []
-#
-#     server_url = "https://cgisdev.utcluj.ro/woc/api"
-#     encodedSpeciesName = quote(speciesName)
-#
-#     resources.append({
-#         "name": f"Narrative",
-#         "path": server_url + "/species/narrative/" + encodedSpeciesName,
-#         "format": "md"
-#     })
-#
-#     geolocation_types = ["AOO", "basins", "EOO"]
-#     for geoType in geolocation_types:
-#         resources.append({
-#             "name": f"Geolocations ({geoType})",
-#             "path": server_url + "/species/geolocations/" + encodedSpeciesName + "/" + geoType + "?mode=inline",
-#             "format": "geojson"
-#         })
-#
-#     bibliography_formats = ["json", "csv", "bib", "cff"]
-#
-#     for fmt in bibliography_formats:
-#         resources.append({
-#             "name": f"Bibliography ({fmt})",
-#             "path": server_url + "/species/bibliography/" + encodedSpeciesName + "/" + fmt + "?mode=inline",
-#             "format": fmt
-#         })
-#
-#     manifest = {
-#         "id": "woc-seb:" + speciesName,
-#         "name": "woc-seb",
-#         "version": "1.0.0",
-#         "species": {
-#             "scientificName": speciesName
-#         },
-#         "resources": resources
-#     }
-#
-#     return build_response({"manifest": manifest}, 200)
+    return send_file(filePath, as_attachment=True)
 
 
 @SpeciesService.route("/species/manifest/<path:speciesName>", methods=['GET'])
@@ -273,7 +361,6 @@ def getMetadata(speciesName):
     server_url = "https://cgisdev.utcluj.ro/woc/api"
     encodedSpeciesName = quote(speciesName)
 
-    # --- Core configuration (ideally move to app config/env vars) ---
     SCHEMA_VERSION = "1.1.0"
     BUNDLE_NAME = "woc-seb"
     BUNDLE_VERSION = "1.0.0"
@@ -281,19 +368,24 @@ def getMetadata(speciesName):
     PIPELINE_NAME = "cheCkOVER"
     PIPELINE_VERSION = "x.y.z"
 
-    # ISO 8601 timestamps (UTC, with 'Z')
     now_iso = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
-    # Recommended citation (minimal but consistent)
     recommended_citation = (
         f"WoC (2026). Species Exposure Bundle: {speciesName}. "
         f"SEB {BUNDLE_NAME}:{speciesName} v{BUNDLE_VERSION}."
     )
 
-    # --- Resources ---
+    snapshot_id = request.args.get("snapshot_id", default=None, type=int)
+    _, _, snapshot, error_response = resolve_species_dir(speciesName, snapshot_id)
+    if error_response is not None:
+        return error_response
+
+    snapshot_query = f"snapshot_id={snapshot.id}" if snapshot else ""
+
     resources.append({
         "name": "Narrative",
-        "path": f"{server_url}/species/narrative/{encodedSpeciesName}",
+        "path": f"{server_url}/species/narrative/{encodedSpeciesName}" +
+                (f"?{snapshot_query}" if snapshot_query else ""),
         "format": "md"
     })
 
@@ -301,30 +393,32 @@ def getMetadata(speciesName):
     for geoType in geolocation_types:
         resources.append({
             "name": f"Geolocations ({geoType}) - inline",
-            "path": f"{server_url}/species/geolocations/{encodedSpeciesName}/{geoType}?mode=inline",
+            "path": f"{server_url}/species/geolocations/{encodedSpeciesName}/{geoType}?mode=inline" +
+                    (f"&{snapshot_query}" if snapshot_query else ""),
             "format": "geojson"
         })
         resources.append({
             "name": f"Geolocations ({geoType}) - download",
-            "path": f"{server_url}/species/geolocations/{encodedSpeciesName}/{geoType}",
+            "path": f"{server_url}/species/geolocations/{encodedSpeciesName}/{geoType}" +
+                    (f"?{snapshot_query}" if snapshot_query else ""),
             "format": "geojson"
         })
 
-    # bibliography_formats = ["json", "csv", "bib", "cff"]
     bibliography_formats = ["json"]
     for fmt in bibliography_formats:
         resources.append({
             "name": f"Bibliography ({fmt}) - inline",
-            "path": f"{server_url}/species/bibliography/{encodedSpeciesName}/{fmt}?mode=inline",
+            "path": f"{server_url}/species/bibliography/{encodedSpeciesName}/{fmt}?mode=inline" +
+                    (f"&{snapshot_query}" if snapshot_query else ""),
             "format": fmt
         })
         resources.append({
             "name": f"Bibliography ({fmt}) - download",
-            "path": f"{server_url}/species/bibliography/{encodedSpeciesName}/{fmt}",
+            "path": f"{server_url}/species/bibliography/{encodedSpeciesName}/{fmt}" +
+                    (f"?{snapshot_query}" if snapshot_query else ""),
             "format": fmt
         })
 
-    # --- Manifest ---
     manifest = {
         "schemaVersion": SCHEMA_VERSION,
         "id": f"{BUNDLE_NAME}:{speciesName}",
@@ -341,32 +435,19 @@ def getMetadata(speciesName):
         "species": {
             "scientificName": speciesName
         },
+        "snapshotUsed": {
+            "id": snapshot.id,
+            "snapshot_name": snapshot.snapshot_name,
+            "date": snapshot.date.isoformat()
+        } if snapshot else None,
         "resources": resources
     }
 
     return jsonify(manifest), 200
 
 
-def remove_md_sections(md_text: str, section_titles: list[str], level: int = 4) -> str:
-    """
-    Remove markdown sections like:
-    #### Title
-    ...content...
-    until the next heading of level <= current level.
-    """
-    for title in section_titles:
-        pattern = (
-            rf'(?ms)^{"#" * level}\s+{re.escape(title)}\s*\n'   # heading line
-            rf'.*?'                                             # section body
-            rf'(?=^#{{1,{level}}}\s+|\Z)'                       # next heading lvl 1..level or EOF
-        )
-        md_text = re.sub(pattern, "", md_text)
-    return md_text.strip()
-
-
 @SpeciesService.route("/species/manifest2/<path:speciesName>", methods=['GET'])
 def getMetadata2(speciesName):
-    # --- Core configuration ---
     SCHEMA_VERSION = "1.1.0"
     BUNDLE_NAME = "woc-seb"
     BUNDLE_VERSION = "1.0.0"
@@ -381,22 +462,20 @@ def getMetadata2(speciesName):
         f"SEB {BUNDLE_NAME}:{speciesName} v{BUNDLE_VERSION}."
     )
 
-    normalized_name = normalize_species_name(speciesName)
+    snapshot_id = request.args.get("snapshot_id", default=None, type=int)
+    normalized_name, species_dir, snapshot, error_response = resolve_species_dir(
+        speciesName,
+        snapshot_id
+    )
+    if error_response is not None:
+        return error_response
 
-    base_dir = "/home/DATA_FILES"
-    species_dir = os.path.join(base_dir, normalized_name)
     narratives_dir = os.path.join(species_dir, "narratives")
     maps_dir = os.path.join(species_dir, "maps")
     citations_dir = os.path.join(species_dir, "citations")
 
-    if not os.path.isdir(species_dir):
-        return build_response({"error": f"Species directory '{speciesName}' not found"}, 404)
-
     resources = []
 
-    # ----------------------------
-    # 1) Narrative -> JSON inline
-    # ----------------------------
     narrative_filename = f"{normalized_name}_canonical.md"
     narrative_path = os.path.join(narratives_dir, narrative_filename)
 
@@ -422,8 +501,6 @@ def getMetadata2(speciesName):
             }
         except Exception as e:
             narrative_payload = {"error": f"Failed to read narrative: {str(e)}"}
-    else:
-        narrative_payload = None
 
     resources.append({
         "name": "Narrative",
@@ -431,26 +508,11 @@ def getMetadata2(speciesName):
         "content": narrative_payload
     })
 
-    # --------------------------------
-    # 2) Bibliography -> JSON inline
-    # --------------------------------
-    bib_json_path = os.path.join(citations_dir, f"{normalized_name}_bibliography.json")
     bib_csv_path = os.path.join(citations_dir, f"{normalized_name}_bibliography.csv")
     bib_bib_path = os.path.join(citations_dir, f"{normalized_name}_bibliography.bib")
     bib_cff_path = os.path.join(citations_dir, f"{normalized_name}_CITATION.cff")
 
     bibliography_payload = None
-
-    # Prefer JSON bibliography if exists
-    # if os.path.isfile(bib_json_path):
-    #     try:
-    #         with open(bib_json_path, "r", encoding="utf-8") as f:
-    #             bibliography_payload = json.load(f)
-    #     except Exception as e:
-    #         bibliography_payload = {"error": f"Failed to read bibliography JSON: {str(e)}"}
-
-    # Fallback: parse CSV into JSON list
-    # elif os.path.isfile(bib_csv_path):
     if os.path.isfile(bib_csv_path):
         try:
             with open(bib_csv_path, "r", encoding="utf-8") as f:
@@ -459,21 +521,13 @@ def getMetadata2(speciesName):
         except Exception as e:
             bibliography_payload = {"error": f"Failed to parse bibliography CSV: {str(e)}"}
 
-    else:
-        bibliography_payload = None
-
     resources.append({
         "name": "Bibliography",
         "format": "json",
         "content": bibliography_payload
     })
 
-    # ---------------------------------
-    # 3) Geolocations -> GeoJSON inline
-    # ---------------------------------
     geo_files = {
-        # "AOO": f"{normalized_name}_AOO.geojson",
-        # "basins": f"{normalized_name}_basins.geojson",
         "EOO": f"{normalized_name}_EOO.geojson"
     }
 
@@ -484,11 +538,9 @@ def getMetadata2(speciesName):
         if os.path.isfile(geo_path):
             try:
                 with open(geo_path, "r", encoding="utf-8") as f:
-                    geo_payload = json.load(f)  # dict GeoJSON
+                    geo_payload = json.load(f)
             except Exception as e:
                 geo_payload = {"error": f"Failed to read {geo_type}: {str(e)}"}
-        else:
-            geo_payload = None
 
         resources.append({
             "name": f"Geolocations ({geo_type})",
@@ -496,10 +548,6 @@ def getMetadata2(speciesName):
             "content": geo_payload
         })
 
-    # -----------------------------------------------------
-    # Optional: include text formats too (bib/cff) as JSON
-    # usage: /species/manifest/<species>?includeTextFormats=true
-    # -----------------------------------------------------
     include_text_formats = request.args.get("includeTextFormats", "false").lower() == "true"
 
     if include_text_formats:
@@ -541,34 +589,6 @@ def getMetadata2(speciesName):
                     "content": {"error": f"Failed to read .cff: {str(e)}"}
                 })
 
-    # ---------------------------------
-    # 4) Geolocations -> GeoJSON inline
-    # ---------------------------------
-    geo_files = {
-        # "AOO": f"{normalized_name}_AOO.geojson",
-        # "basins": f"{normalized_name}_basins.geojson",
-    }
-
-    for geo_type, filename in geo_files.items():
-        geo_path = os.path.join(maps_dir, filename)
-
-        geo_payload = None
-        if os.path.isfile(geo_path):
-            try:
-                with open(geo_path, "r", encoding="utf-8") as f:
-                    geo_payload = json.load(f)  # dict GeoJSON
-            except Exception as e:
-                geo_payload = {"error": f"Failed to read {geo_type}: {str(e)}"}
-        else:
-            geo_payload = None
-
-        resources.append({
-            "name": f"Geolocations ({geo_type})",
-            "format": "geojson",
-            "content": geo_payload
-        })
-
-    # --- Manifest ---
     manifest = {
         "schemaVersion": SCHEMA_VERSION,
         "id": f"{BUNDLE_NAME}:{speciesName}",
@@ -585,13 +605,17 @@ def getMetadata2(speciesName):
         "species": {
             "scientificName": speciesName
         },
+        "snapshotUsed": {
+            "id": snapshot.id,
+            "snapshot_name": snapshot.snapshot_name,
+            "date": snapshot.date.isoformat()
+        } if snapshot else None,
         "resources": resources
     }
 
     return jsonify(manifest), 200
 
 
-# Define Service endpoint
 @SpeciesService.route("/species/<string:speciesName>", methods=['GET'])
 def getSpeciesByName(speciesName):
     species = Species.query.filter_by(species_name=speciesName).first()
@@ -605,17 +629,16 @@ def getSpeciesByName(speciesName):
     methods=['GET']
 )
 def getSpeciesGeolocationsFile(speciesName, geoType):
-    normalized_name = normalize_species_name(speciesName)
+    snapshot_id = request.args.get("snapshot_id", default=None, type=int)
 
-    base_dir = "/home/DATA_FILES"
-    species_dir = os.path.join(base_dir, normalized_name)
+    normalized_name, species_dir, snapshot, error_response = resolve_species_dir(
+        speciesName,
+        snapshot_id
+    )
+    if error_response is not None:
+        return error_response
+
     maps_dir = os.path.join(species_dir, "maps")
-
-    if not os.path.isdir(species_dir):
-        return build_response(
-            {"error": f"Species directory '{speciesName}' not found"},
-            404
-        )
 
     if not os.path.isdir(maps_dir):
         return build_response(
@@ -647,23 +670,58 @@ def getSpeciesGeolocationsFile(speciesName, geoType):
 
     mode = request.args.get("mode", "download")
 
-    # 🔹 INLINE MODE → return JSON object
     if mode == "inline":
         with open(filePath, "r", encoding="utf-8") as f:
             geojson_data = json.load(f)
 
-        body = json.dumps(geojson_data, ensure_ascii=False, indent=2)
+        body = json.dumps({
+            "snapshot_used": {
+                "id": snapshot.id,
+                "snapshot_name": snapshot.snapshot_name,
+                "date": snapshot.date.isoformat()
+            } if snapshot else None,
+            "data": geojson_data
+        }, ensure_ascii=False, indent=2)
+
         return Response(
             body,
             status=200,
-            content_type="application/geo+json; charset=utf-8"
+            content_type="application/json; charset=utf-8"
         )
 
-        # return build_response({"geolocations": geojson_data}, 200)
-
-    # 🔹 DEFAULT → download (comportament vechi)
     return send_file(
         filePath,
         mimetype="application/geo+json",
         as_attachment=True
     )
+
+
+@SpeciesService.route("/species/<path:speciesName>/snapshots", methods=['GET'])
+def getSpeciesSnapshots(speciesName):
+    species = Species.query.filter_by(species_name=speciesName).first()
+
+    if species is None:
+        return build_response({"error": f"Species '{speciesName}' not found"}, 404)
+
+    snapshots = []
+
+    for species_snapshot in species.species_snapshots:
+        snapshot = species_snapshot.snapshot
+
+        snapshots.append(
+            SpeciesSnapshotItemDTO(
+                snapshot_id=snapshot.id,
+                snapshot_name=snapshot.snapshot_name,
+                snapshot_date=snapshot.snapshot_date,
+                indigenous_aoo=species_snapshot.indigenous_aoo,
+                non_indigenous_aoo=species_snapshot.non_indigenous_aoo
+            )
+        )
+
+    response = SpeciesSnapshotsOutDTO(
+        species_id=species.id,
+        species_name=species.species_name,
+        snapshots=snapshots
+    )
+
+    return build_response(response.model_dump(mode="json"), 200)
