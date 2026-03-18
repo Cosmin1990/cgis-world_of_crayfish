@@ -30,7 +30,9 @@ def parse_aoo_values_from_narrative(species_dir_name: str, species_root_dir: str
 
     result = {
         "indigenous_aoo": None,
-        "non_indigenous_aoo": None
+        "non_indigenous_aoo": None,
+        "indigenous_records": None,
+        "non_indigenous_records": None,
     }
 
     if not os.path.isfile(narrative_file):
@@ -39,47 +41,110 @@ def parse_aoo_values_from_narrative(species_dir_name: str, species_root_dir: str
     with open(narrative_file, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # secțiunea 2 până la secțiunea 3
+    # 2. INDIGENOUS RANGE OVERVIEW -> până la 3.
     indigenous_section_match = re.search(
-        r"##\s*2\.\s*INDIGENOUS RANGE OVERVIEW(.*?)##\s*3\.",
+        r"##\s*2\.\s*INDIGENOUS RANGE OVERVIEW(.*?)(?=##\s*3\.)",
         content,
-        re.DOTALL | re.IGNORECASE
+        re.DOTALL | re.IGNORECASE,
     )
     if indigenous_section_match:
         indigenous_section = indigenous_section_match.group(1)
+
         aoo_match = re.search(
-            r"Area of occupancy\s*\(AOO\):\**\s*([\d,]+)\s*km",
+            r"Area of occupancy\s*\(AOO\)\s*:\**\s*([\d,]+)\s*km",
             indigenous_section,
-            re.IGNORECASE
+            re.IGNORECASE,
         )
         if aoo_match:
             result["indigenous_aoo"] = int(aoo_match.group(1).replace(",", ""))
 
-    # secțiunea 3 până la secțiunea 4
+    # 3. NON-INDIGENOUS RANGE OVERVIEW -> până la 4.
     non_indigenous_section_match = re.search(
-        r"##\s*3\.\s*NON-INDIGENOUS RANGE OVERVIEW(.*?)##\s*4\.",
+        r"##\s*3\.\s*NON-INDIGENOUS RANGE OVERVIEW(.*?)(?=##\s*4\.)",
         content,
-        re.DOTALL | re.IGNORECASE
+        re.DOTALL | re.IGNORECASE,
     )
     if non_indigenous_section_match:
         non_indigenous_section = non_indigenous_section_match.group(1)
 
         non_ind_aoo_match = re.search(
-            r"Area of occupancy\s*\(AOO\):\**\s*([\d,]+)\s*km",
+            r"Area of occupancy\s*\(AOO\)\s*:\**\s*([\d,]+)\s*km",
             non_indigenous_section,
-            re.IGNORECASE
+            re.IGNORECASE,
         )
         if non_ind_aoo_match:
-            result["non_indigenous_aoo"] = int(non_ind_aoo_match.group(1).replace(",", ""))
+            result["non_indigenous_aoo"] = int(
+                non_ind_aoo_match.group(1).replace(",", "")
+            )
 
         if result["non_indigenous_aoo"] is None:
-            if re.search(r"no non-indigenous populations detected", non_indigenous_section, re.IGNORECASE):
+            if re.search(
+                r"no non-indigenous populations detected",
+                non_indigenous_section,
+                re.IGNORECASE,
+            ):
                 result["non_indigenous_aoo"] = 0
 
-    # fallback global
+    # 4.1 Data Summary -> până la următorul ### sau ##
+    data_summary_match = re.search(
+        r"###\s*4\.1\s*Data Summary(.*?)(?=\n###\s*4\.[2-9]|\n##\s*5\.|\Z)",
+        content,
+        re.DOTALL | re.IGNORECASE,
+    )
+    if data_summary_match:
+        data_summary_section = data_summary_match.group(1)
+
+        indigenous_records_match = re.search(
+            r"Indigenous records\s*:\s*([\d,]+)",
+            data_summary_section,
+            re.IGNORECASE,
+        )
+        if indigenous_records_match:
+            result["indigenous_records"] = int(
+                indigenous_records_match.group(1).replace(",", "")
+            )
+
+        non_indigenous_records_match = re.search(
+            r"Non-indigenous records\s*:\s*([\d,]+)",
+            data_summary_section,
+            re.IGNORECASE,
+        )
+        if non_indigenous_records_match:
+            result["non_indigenous_records"] = int(
+                non_indigenous_records_match.group(1).replace(",", "")
+            )
+
+    # fallback global pentru non_indigenous_aoo
     if result["non_indigenous_aoo"] is None:
-        if re.search(r"Non-indigenous records:\s*0", content, re.IGNORECASE):
+        if re.search(
+            r"Non-indigenous records\s*:\s*0",
+            content,
+            re.IGNORECASE,
+        ):
             result["non_indigenous_aoo"] = 0
+
+    # fallback global pentru records
+    if result["indigenous_records"] is None:
+        indigenous_records_match = re.search(
+            r"Indigenous records\s*:\s*([\d,]+)",
+            content,
+            re.IGNORECASE,
+        )
+        if indigenous_records_match:
+            result["indigenous_records"] = int(
+                indigenous_records_match.group(1).replace(",", "")
+            )
+
+    if result["non_indigenous_records"] is None:
+        non_indigenous_records_match = re.search(
+            r"Non-indigenous records\s*:\s*([\d,]+)",
+            content,
+            re.IGNORECASE,
+        )
+        if non_indigenous_records_match:
+            result["non_indigenous_records"] = int(
+                non_indigenous_records_match.group(1).replace(",", "")
+            )
 
     return result
 
@@ -96,7 +161,7 @@ def uploadSnapshotArchive():
 
     try:
         snapshot_name = request.form.get("snapshot_name", "").strip()
-        snapshot_date = request.form.get("date", "").strip()
+        snapshot_date = request.form.get("snapshot_date", "").strip()
         archive_file = request.files.get("archive")
 
         if not snapshot_name:
@@ -117,7 +182,7 @@ def uploadSnapshotArchive():
             return build_response({"error": "date must be in format YYYY-MM-DD"}, 400)
 
         normalized_snapshot_name = normalize_snapshot_name(snapshot_name)
-        base_dir = "/home/snapshots"
+        base_dir = "/home/SNAPSHOTS"
         snapshot_dir = os.path.join(base_dir, normalized_snapshot_name)
         os.makedirs(snapshot_dir, exist_ok=True)
 
@@ -127,13 +192,13 @@ def uploadSnapshotArchive():
         if snapshot is None:
             snapshot = Snapshots(
                 snapshot_name=snapshot_name,
-                date=parsed_date
+                snapshot_date=parsed_date
             )
             db.session.add(snapshot)
             db.session.flush()
             created_snapshot = True
         else:
-            snapshot.date = parsed_date
+            snapshot.snapshot_date = parsed_date
             db.session.flush()
 
         # construim map pentru lookup rapid:
@@ -189,12 +254,16 @@ def uploadSnapshotArchive():
                     species_id=species.id,
                     snapshot_id=snapshot.id,
                     indigenous_aoo=aoo_values["indigenous_aoo"],
-                    non_indigenous_aoo=aoo_values["non_indigenous_aoo"]
+                    indigenous_records=aoo_values["indigenous_records"],
+                    non_indigenous_aoo=aoo_values["non_indigenous_aoo"],
+                    non_indigenous_records=aoo_values["non_indigenous_records"]
                 )
                 db.session.add(link)
             else:
                 existing_link.indigenous_aoo = aoo_values["indigenous_aoo"]
+                existing_link.indigenous_records = aoo_values["indigenous_records"]
                 existing_link.non_indigenous_aoo = aoo_values["non_indigenous_aoo"]
+                existing_link.non_indigenous_records = aoo_values["non_indigenous_records"]
 
             linked_species.append({
                 "species_id": species.id,
@@ -218,7 +287,7 @@ def uploadSnapshotArchive():
             "snapshot": {
                 "id": snapshot.id,
                 "snapshot_name": snapshot.snapshot_name,
-                "date": snapshot.date.isoformat()
+                "snapshot_date": snapshot.snapshot_date.isoformat()
             },
             "snapshot_directory": snapshot_dir,
             "created_snapshot": created_snapshot,

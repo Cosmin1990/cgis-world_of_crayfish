@@ -46,7 +46,7 @@ services:
     volumes:
       - ./woc-server:/home/server/                    # Reacts to code modified(saved) while deployed -> restart/reinitialized server
       - file-storage:/home/DATA_FILES
-      - snapshots-storage:/home/Snapshots
+      - snapshots-storage:/home/SNAPSHOTS
     command: ["python", "ServerApp.py", "init_db"]
 
 
@@ -80,7 +80,7 @@ services:
       - ./woc-server/nginx.conf:/etc/nginx/nginx.conf
       - ./woc-server/cert:/home/cert/
       - file-storage:/home/DATA_FILES
-      - snapshots-storage:/home/Snapshots
+      - snapshots-storage:/home/SNAPSHOTS
     depends_on:
       - server
     networks:

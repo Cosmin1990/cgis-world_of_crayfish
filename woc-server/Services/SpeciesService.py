@@ -56,7 +56,7 @@ def resolve_species_base_dir(snapshot_id: int | None = None):
       3. dacă nu există snapshot -> fallback la /home/DATA_FILES
     """
     default_base_dir = "/home/DATA_FILES"
-    snapshots_root = "/home/snapshots"
+    snapshots_root = "/home/SNAPSHOTS"
 
     if snapshot_id is not None:
         requested_snapshot = Snapshots.query.filter_by(id=snapshot_id).first()
@@ -161,7 +161,7 @@ def getSpeciesDirectoryAvailability(speciesName):
         "snapshot_used": {
             "id": snapshot.id,
             "snapshot_name": snapshot.snapshot_name,
-            "date": snapshot.date.isoformat()
+            "snapshot_date": snapshot.snapshot_date.isoformat()
         } if snapshot else None
     }, 200 if exists else 404)
 
@@ -187,8 +187,9 @@ def getSpeciesDirectoryZip(speciesName):
         return response
 
     download_name = f"{normalized_name}.zip"
+    print(snapshot.snapshot_name)
     if snapshot:
-        download_name = f"{normalized_name}_snapshot_{snapshot.id}.zip"
+        download_name = f"{normalized_name}_{snapshot.snapshot_name}.zip"
 
     return send_file(
         zip_path,
@@ -221,7 +222,7 @@ def getSpeciesGeolocations(speciesName):
         "snapshot_used": {
             "id": snapshot.id,
             "snapshot_name": snapshot.snapshot_name,
-            "date": snapshot.date.isoformat()
+            "snapshot_date": snapshot.snapshot_date.isoformat()
         } if snapshot else None
     }
 
@@ -269,7 +270,7 @@ def getSpeciesNarrative(speciesName):
         "snapshot_used": {
             "id": snapshot.id,
             "snapshot_name": snapshot.snapshot_name,
-            "date": snapshot.date.isoformat()
+            "snapshot_date": snapshot.snapshot_date.isoformat()
         } if snapshot else None,
         "short": short,
         "full": species_narrative
@@ -321,7 +322,7 @@ def getSpeciesBibliographyFile(speciesName, fileType):
                 "snapshot_used": {
                     "id": snapshot.id,
                     "snapshot_name": snapshot.snapshot_name,
-                    "date": snapshot.date.isoformat()
+                    "snapshot_date": snapshot.snapshot_date.isoformat()
                 } if snapshot else None,
                 "data": data
             }, 200)
@@ -334,7 +335,7 @@ def getSpeciesBibliographyFile(speciesName, fileType):
                 "snapshot_used": {
                     "id": snapshot.id,
                     "snapshot_name": snapshot.snapshot_name,
-                    "date": snapshot.date.isoformat()
+                    "snapshot_date": snapshot.snapshot_date.isoformat()
                 } if snapshot else None,
                 "data": data
             }, 200)
@@ -346,7 +347,7 @@ def getSpeciesBibliographyFile(speciesName, fileType):
                 "snapshot_used": {
                     "id": snapshot.id,
                     "snapshot_name": snapshot.snapshot_name,
-                    "date": snapshot.date.isoformat()
+                    "snapshot_date": snapshot.snapshot_date.isoformat()
                 } if snapshot else None,
                 "content": content
             }, 200)
@@ -438,7 +439,7 @@ def getMetadata(speciesName):
         "snapshotUsed": {
             "id": snapshot.id,
             "snapshot_name": snapshot.snapshot_name,
-            "date": snapshot.date.isoformat()
+            "snapshot_date": snapshot.snapshot_date.isoformat()
         } if snapshot else None,
         "resources": resources
     }
@@ -608,7 +609,7 @@ def getMetadata2(speciesName):
         "snapshotUsed": {
             "id": snapshot.id,
             "snapshot_name": snapshot.snapshot_name,
-            "date": snapshot.date.isoformat()
+            "snapshot_date": snapshot.snapshot_date.isoformat()
         } if snapshot else None,
         "resources": resources
     }
@@ -714,7 +715,9 @@ def getSpeciesSnapshots(speciesName):
                 snapshot_name=snapshot.snapshot_name,
                 snapshot_date=snapshot.snapshot_date,
                 indigenous_aoo=species_snapshot.indigenous_aoo,
-                non_indigenous_aoo=species_snapshot.non_indigenous_aoo
+                indigenous_records=species_snapshot.indigenous_records,
+                non_indigenous_aoo=species_snapshot.non_indigenous_aoo,
+                non_indigenous_records=species_snapshot.non_indigenous_records
             )
         )
 

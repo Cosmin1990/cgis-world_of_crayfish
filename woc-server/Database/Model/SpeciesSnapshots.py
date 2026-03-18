@@ -9,7 +9,9 @@ class SpeciesSnapshots(Base):
     species_id = Column(Integer, ForeignKey("Species.id"), primary_key=True)
     snapshot_id = Column(Integer, ForeignKey("Snapshots.id"), primary_key=True)
     indigenous_aoo = Column(Integer, nullable=True)
+    indigenous_records = Column(Integer, nullable=True)
     non_indigenous_aoo = Column(Integer, nullable=True)
+    non_indigenous_records = Column(Integer, nullable=True)
 
     species = relationship("Species", back_populates="species_snapshots")
     snapshot = relationship("Snapshots", back_populates="species_snapshots")

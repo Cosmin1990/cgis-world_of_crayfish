@@ -32,7 +32,9 @@ class SpeciesSnapshotItemDTO(BaseModel):
     snapshot_name: str
     snapshot_date: Optional[date] = None
     indigenous_aoo: Optional[int] = None
+    indigenous_records: Optional[int] = None
     non_indigenous_aoo: Optional[int] = None
+    non_indigenous_records: Optional[int] = None
 
     class Config:
         from_attributes = True
