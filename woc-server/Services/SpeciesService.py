@@ -24,11 +24,21 @@ from Database.Schema.SpeciesSchema import (
 # Create Service blueprint
 SpeciesService = Blueprint('SpeciesService', __name__)
 
-
 def normalize_species_name(species_name: str) -> str:
+    if not species_name:
+        return ""
+
     name = species_name.strip()
-    name = name.replace(" ", "_").replace("(", "_").replace(")", "_")
-    name = name.lower()
+
+    # Elimină parantezele, dar păstrează textul din interior
+    name = name.replace("(", " ").replace(")", " ")
+
+    # Orice grup de spații / underscore / cratimă devine un singur underscore
+    name = re.sub(r"[\s_-]+", "_", name)
+
+    # Elimină underscore la început/final
+    name = name.strip("_")
+
     return name[0].upper() + name[1:] if name else name
 
 
@@ -263,7 +273,7 @@ def getSpeciesNarrative(speciesName):
     with open(species_description_file, "r", encoding="utf-8") as f:
         species_narrative = f.read()
 
-    pieces = species_narrative.split("FORMAL NARRATIVE SUMMARY (Human-Readable)")
+    pieces = species_narrative.split("FORMAL NARRATIVE SUMMARY")
     short = pieces[1].strip() if len(pieces) > 1 else ""
 
     return build_response({
@@ -492,7 +502,7 @@ def getMetadata2(speciesName):
                 level=4
             )
 
-            pieces = species_narrative.split("FORMAL NARRATIVE SUMMARY (Human-Readable)")
+            pieces = species_narrative.split("FORMAL NARRATIVE SUMMARY")
             short = pieces[1].strip() if len(pieces) > 1 else ""
 
             narrative_payload = {

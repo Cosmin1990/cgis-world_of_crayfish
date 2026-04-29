@@ -151,3 +151,124 @@ a.btn-modern {
   color: #1e40af;
   transform: translateY(-1px);
 }
+
+.snapshots-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.snapshots-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.snapshots-active-meta {
+  font-size: 13px;
+  color: #666;
+  text-align: right;
+}
+
+.snapshots-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.snapshot-panel {
+  padding: 16px;
+  border-radius: 12px;
+  background: #fff;
+  border: 2px solid #e9ecef;
+}
+
+.snapshot-panel-indigenous {
+  border-color: #198754;
+  background: linear-gradient(to bottom, rgba(25, 135, 84, 0.04), rgba(25, 135, 84, 0.01));
+}
+
+.snapshot-panel-nonindigenous {
+  border-color: #dc3545;
+  background: linear-gradient(to bottom, rgba(220, 53, 69, 0.04), rgba(220, 53, 69, 0.01));
+}
+
+.snapshot-panel-title {
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.snapshot-tiles {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.snapshot-tile {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.75;
+  position: relative;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.snapshot-tile:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+}
+
+.snapshot-tile.selected {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.snapshot-tile.selected::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(30, 30, 30, 0.7);
+}
+
+.snapshots-legend {
+  margin-top: 4px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: #555;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  display: inline-block;
+  border-radius: 2px;
+}
+
+@media (max-width: 768px) {
+  .snapshots-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .snapshots-active-meta {
+    text-align: left;
+  }
+}

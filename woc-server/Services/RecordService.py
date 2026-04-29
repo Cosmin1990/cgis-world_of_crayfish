@@ -68,16 +68,20 @@ def create_record():
 
 # Endpoint: Get distinct crayfish scientific names
 @RecordService.route("/records/species_names", methods=['GET'])
+@RecordService.route("/records/species_names", methods=['GET'])
 def get_distinct_crayfish_names():
     try:
-        distinct_names = (
-            db.session.query(Record.crayfish_scientific_name)
-            .distinct()
-            .order_by(Record.crayfish_scientific_name)
+        species_names = (
+            db.session.query(Species.species_name)
+            .filter(Species.species_name.isnot(None))
+            .order_by(Species.species_name)
             .all()
         )
-        names_list = [name[0] for name in distinct_names if name[0] is not None]
+
+        names_list = [row[0] for row in species_names]
+
         return build_response(names_list, 200)
+
     except Exception as e:
         return build_response({"error": str(e)}, 500)
 
@@ -86,6 +90,7 @@ from flask import Blueprint, jsonify, abort
 from Database.Model.Record import Record
 from Database.Schema.RecordSchema import RecordOutDTO
 from Database.Schema.RecordSchema import RecordLocationOutDTO
+from Database.Model.Species import Species
 
 
 @RecordService.route('/records/species/<string:species_name>', methods=['GET'])

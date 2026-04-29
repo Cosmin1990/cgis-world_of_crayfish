@@ -95,20 +95,22 @@ def parse_aoo_values_from_narrative(species_dir_name: str, species_root_dir: str
         data_summary_section = data_summary_match.group(1)
 
         indigenous_records_match = re.search(
-            r"Indigenous records\s*:\s*([\d,]+)",
+            r"\**\s*Indigenous records\s*\**\s*:\s*\**\s*([\d,]+)",
             data_summary_section,
             re.IGNORECASE,
         )
+
         if indigenous_records_match:
             result["indigenous_records"] = int(
                 indigenous_records_match.group(1).replace(",", "")
             )
 
         non_indigenous_records_match = re.search(
-            r"Non-indigenous records\s*:\s*([\d,]+)",
+            r"\**\s*Non-indigenous records\s*\**\s*:\s*\**\s*([\d,]+)",
             data_summary_section,
             re.IGNORECASE,
         )
+
         if non_indigenous_records_match:
             result["non_indigenous_records"] = int(
                 non_indigenous_records_match.group(1).replace(",", "")
@@ -117,19 +119,20 @@ def parse_aoo_values_from_narrative(species_dir_name: str, species_root_dir: str
     # fallback global pentru non_indigenous_aoo
     if result["non_indigenous_aoo"] is None:
         if re.search(
-            r"Non-indigenous records\s*:\s*0",
-            content,
-            re.IGNORECASE,
+                r"\**\s*Non-indigenous records\s*\**\s*:\s*\**\s*0\b",
+                content,
+                re.IGNORECASE,
         ):
             result["non_indigenous_aoo"] = 0
 
     # fallback global pentru records
     if result["indigenous_records"] is None:
         indigenous_records_match = re.search(
-            r"Indigenous records\s*:\s*([\d,]+)",
+            r"\**\s*Indigenous records\s*\**\s*:\s*\**\s*([\d,]+)",
             content,
             re.IGNORECASE,
         )
+
         if indigenous_records_match:
             result["indigenous_records"] = int(
                 indigenous_records_match.group(1).replace(",", "")
@@ -137,10 +140,11 @@ def parse_aoo_values_from_narrative(species_dir_name: str, species_root_dir: str
 
     if result["non_indigenous_records"] is None:
         non_indigenous_records_match = re.search(
-            r"Non-indigenous records\s*:\s*([\d,]+)",
+            r"\**\s*Non-indigenous records\s*\**\s*:\s*\**\s*([\d,]+)",
             content,
             re.IGNORECASE,
         )
+
         if non_indigenous_records_match:
             result["non_indigenous_records"] = int(
                 non_indigenous_records_match.group(1).replace(",", "")

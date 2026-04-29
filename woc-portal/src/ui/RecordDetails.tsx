@@ -108,16 +108,6 @@ function RecordDetails() {
     (snapshot) => (snapshot.non_indigenous_aoo ?? 0) !== 0
   );
 
-  const activeIndigenousValue =
-    activeSnapshot && (activeSnapshot.indigenous_aoo ?? 0) !== 0
-      ? activeSnapshot.indigenous_aoo
-      : null;
-
-  const activeNonIndigenousValue =
-    activeSnapshot && (activeSnapshot.non_indigenous_aoo ?? 0) !== 0
-      ? activeSnapshot.non_indigenous_aoo
-      : null;
-
   const copyTaxonomy = async () => {
     const text = selectedSpeciesTaxonomy.join(", ");
 
@@ -250,40 +240,40 @@ function RecordDetails() {
   };
 
   const getIndigenousTooltip = (snapshot: SpeciesSnapshot, index: number) => {
-  const parts = [
-    snapshot.snapshot_name +
-      (snapshot.snapshot_date ? ` (${formatSnapshotDate(snapshot.snapshot_date)})` : ""),
-    getIndigenousDeltaLabel(index),
-  ];
+    const parts = [
+      snapshot.snapshot_name +
+        (snapshot.snapshot_date ? ` (${formatSnapshotDate(snapshot.snapshot_date)})` : ""),
+      getIndigenousDeltaLabel(index),
+    ];
 
-  if (snapshot.indigenous_aoo != null) {
-    parts.push(`Indigenous AOO: ${snapshot.indigenous_aoo}`);
-  }
+    /* if (snapshot.indigenous_aoo != null) {
+      parts.push(`Indigenous AOO: ${snapshot.indigenous_aoo}`);
+    } */
 
-  if (snapshot.indigenous_records != null) {
-    parts.push(`Indigenous records: ${snapshot.indigenous_records}`);
-  }
+    if (snapshot.indigenous_records != null) {
+      parts.push(`Indigenous records: ${snapshot.indigenous_records}`);
+    }
 
-  return parts.join("\n");
-};
+    return parts.join("\n");
+  };
 
-const getNonIndigenousTooltip = (snapshot: SpeciesSnapshot, index: number) => {
-  const parts = [
-    snapshot.snapshot_name +
-      (snapshot.snapshot_date ? ` (${formatSnapshotDate(snapshot.snapshot_date)})` : ""),
-    getNonIndigenousDeltaLabel(index),
-  ];
+  const getNonIndigenousTooltip = (snapshot: SpeciesSnapshot, index: number) => {
+    const parts = [
+      snapshot.snapshot_name +
+        (snapshot.snapshot_date ? ` (${formatSnapshotDate(snapshot.snapshot_date)})` : ""),
+      getNonIndigenousDeltaLabel(index),
+    ];
 
-  if (snapshot.non_indigenous_aoo != null) {
-    parts.push(`Non-indigenous AOO: ${snapshot.non_indigenous_aoo}`);
-  }
+    /* if (snapshot.non_indigenous_aoo != null) {
+      parts.push(`Non-indigenous AOO: ${snapshot.non_indigenous_aoo}`);
+    } */
 
-  if (snapshot.non_indigenous_records != null) {
-    parts.push(`Non-indigenous records: ${snapshot.non_indigenous_records}`);
-  }
+    if (snapshot.non_indigenous_records != null) {
+      parts.push(`Non-indigenous records: ${snapshot.non_indigenous_records}`);
+    }
 
-  return parts.join("\n");
-};
+    return parts.join("\n");
+  };
 
   useEffect(() => {
     if (!speciesName) return;
@@ -342,7 +332,12 @@ const getNonIndigenousTooltip = (snapshot: SpeciesSnapshot, index: number) => {
         return response.json();
       })
       .then((data: SpeciesSnapshotsResponse) => {
-        const snapshots = data.snapshots ?? [];
+        const snapshots = [...(data.snapshots ?? [])].sort((a, b) => {
+          const da = a.snapshot_date ? new Date(a.snapshot_date).getTime() : 0;
+          const db = b.snapshot_date ? new Date(b.snapshot_date).getTime() : 0;
+          return da - db;
+        });
+
         setSpeciesSnapshots(snapshots);
         setSelectedSnapshotIndex(snapshots.length > 0 ? snapshots.length - 1 : 0);
       })
@@ -517,169 +512,130 @@ const getNonIndigenousTooltip = (snapshot: SpeciesSnapshot, index: number) => {
           {selectedSpeciesCitation?.doi && (
             <p className="subtitle">{selectedSpeciesCitation.doi}</p>
           )}
-
-          <div style={{ marginTop: "12px", textAlign: "left" }}>
-            {snapshotsLoading && <p className="subtitle">Loading snapshots...</p>}
-
-            {!snapshotsLoading && speciesSnapshots.length > 0 && activeSnapshot && (
-              <>
-                {hasIndigenousSnapshots && (
-                  <div style={{ marginBottom: "14px" }}>
-                    <div style={{ fontWeight: 600, marginBottom: "6px", color: "#198754" }}>
-                      Indigenous timeline
-                    </div>
-
-                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                      {speciesSnapshots.map((snapshot, index) => {
-                        if ((snapshot.indigenous_aoo ?? 0) === 0) return null;
-
-                        const tileColor = getIndigenousTileColor(index);
-                        const isSelected = index === selectedSnapshotIndex;
-
-                        return (
-                          <button
-                            key={`indigenous-${snapshot.snapshot_id}`}
-                            type="button"
-                            onClick={() => setSelectedSnapshotIndex(index)}
-                            title={getIndigenousTooltip(snapshot, index)}
-                            style={{
-                              width: "14px",
-                              height: "14px",
-                              border: isSelected
-                                ? `2px solid ${tileColor}`
-                                : `1px solid ${tileColor}`,
-                              borderRadius: "2px",
-                              backgroundColor: tileColor,
-                              cursor: "pointer",
-                              padding: 0,
-                              opacity: isSelected ? 1 : 0.85,
-                              boxShadow: isSelected
-                                ? "0 0 0 2px rgba(0,0,0,0.15)"
-                                : "none",
-                            }}
-                          />
-                        );
-                      })}
-                    </div>
-
-                    
-                  </div>
-                )}
-
-                {hasNonIndigenousSnapshots && (
-                  <div>
-                    <div style={{ fontWeight: 600, marginBottom: "6px", color: "#dc3545" }}>
-                      Non-indigenous timeline
-                    </div>
-
-                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                      {speciesSnapshots.map((snapshot, index) => {
-                        if ((snapshot.non_indigenous_aoo ?? 0) === 0) return null;
-
-                        const tileColor = getNonIndigenousTileColor(index);
-                        const isSelected = index === selectedSnapshotIndex;
-
-                        return (
-                          <button
-                            key={`non-indigenous-${snapshot.snapshot_id}`}
-                            type="button"
-                            onClick={() => setSelectedSnapshotIndex(index)}
-                            title={getNonIndigenousTooltip(snapshot, index)}
-                            style={{
-                              width: "14px",
-                              height: "14px",
-                              border: isSelected
-                                ? `2px solid ${tileColor}`
-                                : `1px solid ${tileColor}`,
-                              borderRadius: "2px",
-                              backgroundColor: tileColor,
-                              cursor: "pointer",
-                              padding: 0,
-                              opacity: isSelected ? 1 : 0.85,
-                              boxShadow: isSelected
-                                ? "0 0 0 2px rgba(0,0,0,0.15)"
-                                : "none",
-                            }}
-                          />
-                        );
-                      })}
-                    </div>
-
-                    
-                  </div>
-                )}
-
-                <div style={{ marginTop: "10px", fontSize: "13px", color: "#666" }}>
-                  <div>
-                    <strong>Snapshot:</strong> {activeSnapshot.snapshot_name}
-                  </div>
-                  {activeSnapshot.snapshot_date && (
-                    <div>
-                      <strong>Date:</strong> {formatSnapshotDate(activeSnapshot.snapshot_date)}
-                    </div>
-                  )}
-                </div>
-
-                {(hasIndigenousSnapshots || hasNonIndigenousSnapshots) && (
-                  <div
-                    style={{
-                      marginTop: "12px",
-                      display: "flex",
-                      gap: "16px",
-                      flexWrap: "wrap",
-                      fontSize: "13px",
-                      color: "#555",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span
-                        style={{
-                          width: "12px",
-                          height: "12px",
-                          backgroundColor: "#0d6efd",
-                          display: "inline-block",
-                          borderRadius: "2px",
-                        }}
-                      />
-                      Stable
-                    </div>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span
-                        style={{
-                          width: "12px",
-                          height: "12px",
-                          backgroundColor: "#198754",
-                          display: "inline-block",
-                          borderRadius: "2px",
-                        }}
-                      />
-                      Increase / beneficial decrease
-                    </div>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span
-                        style={{
-                          width: "12px",
-                          height: "12px",
-                          backgroundColor: "#dc3545",
-                          display: "inline-block",
-                          borderRadius: "2px",
-                        }}
-                      />
-                      Decrease / harmful increase
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {!snapshotsLoading && speciesSnapshots.length === 0 && (
-              <p className="subtitle">No snapshots available.</p>
-            )}
-          </div>
         </header>
       )}
+
+      <section className="card snapshots-card">
+        <div className="snapshots-card-header">
+          <div>
+            <h2>Snapshots</h2>
+            <p className="subtitle">Select the snapshot for the map, narrative, bibliography, archive, and manifest sections.</p>
+          </div>
+
+          {!snapshotsLoading && speciesSnapshots.length > 0 && activeSnapshot && (
+            <div className="snapshots-active-meta">
+              <div>
+                <strong>Snapshot:</strong> {activeSnapshot.snapshot_name}
+              </div>
+              {activeSnapshot.snapshot_date && (
+                <div>
+                  <strong>Date:</strong> {formatSnapshotDate(activeSnapshot.snapshot_date)}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {snapshotsLoading && <p className="subtitle">Loading snapshots...</p>}
+
+        {!snapshotsLoading && speciesSnapshots.length === 0 && (
+          <p className="subtitle">No snapshots available.</p>
+        )}
+
+        {!snapshotsLoading && speciesSnapshots.length > 0 && (
+          <>
+            <div className="snapshots-grid">
+              <div className="snapshot-panel snapshot-panel-indigenous">
+                <div className="snapshot-panel-title">Indigenous timeline</div>
+
+                {hasIndigenousSnapshots ? (
+                  <div className="snapshot-tiles">
+                    {speciesSnapshots.map((snapshot, index) => {
+                      if ((snapshot.indigenous_aoo ?? 0) === 0) return null;
+
+                      const tileColor = getIndigenousTileColor(index);
+                      const isSelected = index === selectedSnapshotIndex;
+
+                      return (
+                        <button
+                          key={`indigenous-${snapshot.snapshot_id}`}
+                          type="button"
+                          onClick={() => setSelectedSnapshotIndex(index)}
+                          title={getIndigenousTooltip(snapshot, index)}
+                          className={`snapshot-tile ${isSelected ? "selected" : ""}`}
+                          style={{
+                            backgroundColor: tileColor
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="subtitle">No indigenous snapshots available.</p>
+                )}
+              </div>
+
+              <div className="snapshot-panel snapshot-panel-nonindigenous">
+                <div className="snapshot-panel-title">Non-indigenous timeline</div>
+
+                {hasNonIndigenousSnapshots ? (
+                  <div className="snapshot-tiles">
+                    {speciesSnapshots.map((snapshot, index) => {
+                      if ((snapshot.non_indigenous_aoo ?? 0) === 0) return null;
+
+                      const tileColor = getNonIndigenousTileColor(index);
+                      const isSelected = index === selectedSnapshotIndex;
+
+                      return (
+                        <button
+                          key={`non-indigenous-${snapshot.snapshot_id}`}
+                          type="button"
+                          onClick={() => setSelectedSnapshotIndex(index)}
+                          title={getNonIndigenousTooltip(snapshot, index)}
+                          className={`snapshot-tile ${isSelected ? "selected" : ""}`}
+                          style={{
+                            backgroundColor: tileColor
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="subtitle">No non-indigenous snapshots available.</p>
+                )}
+              </div>
+            </div>
+
+            {(hasIndigenousSnapshots || hasNonIndigenousSnapshots) && (
+              <div className="snapshots-legend">
+                <div className="legend-item">
+                  <span
+                    className="legend-swatch"
+                    style={{ backgroundColor: "#0d6efd" }}
+                  />
+                  Stable
+                </div>
+
+                <div className="legend-item">
+                  <span
+                    className="legend-swatch"
+                    style={{ backgroundColor: "#198754" }}
+                  />
+                  Increase / beneficial decrease
+                </div>
+
+                <div className="legend-item">
+                  <span
+                    className="legend-swatch"
+                    style={{ backgroundColor: "#dc3545" }}
+                  />
+                  Decrease / harmful increase
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </section>
 
       {selectedSpeciesTaxonomy.length > 0 && (
         <section className="card">
